@@ -2,7 +2,7 @@
 
 **English-first, bilingual-ready analytics engine for Turkish pension funds.**
 
-besFundLens decomposes pension fund AUM movements into **market effect** and **estimated investor flow**, maps portfolio DNA, classifies fund archetypes, identifies market-flow regimes, and generates bilingual Markdown reports.
+besFundLens decomposes pension fund AUM movements into **market effect** and **estimated investor flow**, maps portfolio DNA, classifies funds by their asset allocation, identifies market-flow regimes, and generates bilingual Markdown reports.
 
 > The project currently focuses on Turkish BES / pension fund data. It is designed as a reusable analytics engine rather than a price-prediction model.
 
@@ -19,9 +19,30 @@ It combines:
 - AUM change decomposition
 - Estimated net investor flow
 - Participant change analysis
-- Fund archetype classification
+- Model-driven allocation classification (v2)
 - Market-flow quadrant analysis
 - English and Turkish narrative reporting
+
+## What's new in v0.2.0
+
+**Allocation classification.** Funds are grouped by what they actually hold, by a
+clustering model over their allocation vectors — not by a hand-written rule
+chain. See [docs/CLASSIFICATION.md](docs/CLASSIFICATION.md).
+
+- Classes are **discovered** by KMeans over window-averaged allocation vectors;
+  `k` is chosen by silhouette score. A rule-based taxonomy only *names* each
+  discovered class from its centroid.
+- Classification runs over the **whole lookback window**, not a single day, and
+  reports class stability, style drift and allocation volatility.
+- Four configurable categorical axes sit alongside the asset class:
+  **participation** (interest-free), **risk band**, **currency band** and
+  **look-through band**.
+- Every verdict carries a **confidence score**, discounted by how much of the
+  portfolio is held in other funds and therefore not visible.
+- The fitted model saves to JSON and can be **reused across periods**, so class
+  names stay comparable between reports.
+
+The v0.1 rule-based `archetype` column is unchanged and still populated.
 
 ## Installation
 
@@ -95,6 +116,69 @@ print(selected_funds_report_to_markdown(comparison, language="en"))
 print(selected_funds_report_to_markdown(comparison, language="tr"))
 ```
 
+## Allocation classification
+
+Classify the universe and fit a model:
+
+```bash
+python scripts/classify_funds.py \
+  --db-path data/besfundlens.sqlite \
+  --lookback 3m \
+  --fit \
+  --model-path models/allocation_classifier.json \
+  --output reports/classification.md \
+  --language en
+```
+
+Reuse that model on a different window, so the class names mean the same thing:
+
+```bash
+python scripts/classify_funds.py \
+  --db-path data/besfundlens.sqlite \
+  --lookback 1m \
+  --predict \
+  --model-path models/allocation_classifier.json \
+  --output reports/classification_1m.csv
+```
+
+From Python:
+
+```python
+from besfundlens import classify_funds_from_sqlite
+
+result = classify_funds_from_sqlite(
+    db_path="data/besfundlens.sqlite",
+    lookback="3m",
+    save_model_to="models/allocation_classifier.json",
+)
+
+df = result["classification_df"]
+print(df[[
+    "fonKodu", "asset_class", "asset_class_family", "class_confidence",
+    "risk_band", "currency_band", "participation_class", "style_drift",
+]].head())
+```
+
+Every threshold is configurable:
+
+```python
+from besfundlens import ClassificationConfig, classify_funds_from_sqlite
+
+config = ClassificationConfig(
+    feature_space="detailed",       # broad | detailed | raw
+    k_range=(6, 20),                # silhouette-selected within this range
+    risk_band_method="quantile",    # fixed | quantile | kmeans1d
+    risk_band_edges=(5.0, 25.0, 55.0),
+    currency_band_threshold=50.0,
+    lookthrough_penalty=True,
+)
+
+result = classify_funds_from_sqlite(db_path="data/besfundlens.sqlite", config=config)
+```
+
+Classification is merged into the market narrative report automatically. Pass
+`classify=False` to `run_universe_analysis()` to skip it.
+
 ## Lookback presets
 
 | Preset | Meaning |
@@ -119,12 +203,14 @@ The cache updater uses a period replacement approach: it removes records from th
 
 ```text
 besfundlens/
-  core/       # analytics engine
-  data/       # API client and loaders
-  storage/    # SQLite cache utilities
-  reports/    # markdown report helpers
-scripts/      # CLI-style scripts
-examples/     # small demos
+  core/            # analytics engine, asset metadata, shared utilities
+  classification/  # v2 allocation classification layer
+  data/            # API client and loaders
+  storage/         # SQLite cache utilities
+  reports/         # markdown report helpers
+scripts/           # CLI-style scripts
+examples/          # small demos
+docs/              # methodology notes
 sample_reports/
 tests/
 ```

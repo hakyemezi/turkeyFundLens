@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "besfundlens"
-version = "0.1.0"
-description = "Bilingual analytics engine for Turkish pension funds"
+version = "0.2.0"
+description = "Bilingual analytics and allocation-classification engine for Turkish pension funds"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "İlyas Hakyemez"}]
@@ -15,6 +15,7 @@ dependencies = [
     "numpy>=1.24",
     "requests>=2.31",
     "holidays>=0.50",
+    "scikit-learn>=1.3",
 ]
 
 [project.optional-dependencies]

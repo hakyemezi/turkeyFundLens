@@ -2,7 +2,7 @@
 
 **Türkiye emeklilik fonları için İngilizce öncelikli, iki dilli raporlamaya hazır analiz motoru.**
 
-besFundLens, emeklilik fonlarının AUM hareketlerini **piyasa etkisi** ve **tahmini yatırımcı akışı** olarak ayrıştırır; portföy DNA'sını haritalar, fon tiplerini sınıflandırır, piyasa-akış rejimlerini belirler ve iki dilli Markdown raporlar üretir.
+besFundLens, emeklilik fonlarının AUM hareketlerini **piyasa etkisi** ve **tahmini yatırımcı akışı** olarak ayrıştırır; portföy DNA'sını haritalar, fonları varlık dağılımına göre sınıflandırır, piyasa-akış rejimlerini belirler ve iki dilli Markdown raporlar üretir.
 
 > Proje şu anda Türkiye BES / emeklilik fonu verilerine odaklanmaktadır. Fiyat tahmin modeli olmaktan ziyade yeniden kullanılabilir bir analiz motoru olarak tasarlanmıştır.
 
@@ -19,9 +19,29 @@ Fon analizlerinin çoğu getiri ve AUM değişimi seviyesinde kalır. besFundLen
 - AUM değişimi ayrıştırması
 - Tahmini net yatırımcı akışı
 - Katılımcı değişimi analizi
-- Fon tipi sınıflandırması
+- Model tabanlı varlık dağılımı sınıflandırması (v2)
 - Piyasa-akış quadrant analizi
 - İngilizce ve Türkçe anlatı raporlaması
+
+## v0.2.0 ile gelenler
+
+**Varlık dağılımı sınıflandırması.** Fonlar, elle yazılmış bir kural zinciriyle
+değil, dağılım vektörleri üzerinde çalışan bir kümeleme modeliyle gruplanır.
+Ayrıntılar: [docs/CLASSIFICATION.md](docs/CLASSIFICATION.md).
+
+- Sınıflar, pencere-ortalamalı dağılım vektörleri üzerinde KMeans ile
+  **keşfedilir**; `k` silhouette skoruna göre otomatik seçilir. Kural tabanlı
+  taksonomi yalnızca her kümenin merkezinden okunabilir bir **ad üretir**.
+- Sınıflandırma tek güne değil, **tüm lookback penceresine** dayanır; sınıf
+  kararlılığı, stil kayması ve dağılım oynaklığı ayrıca raporlanır.
+- Varlık sınıfının yanında dört ayarlanabilir kategorik eksen yer alır:
+  **katılım** (faizsiz), **risk bandı**, **kur bandı** ve **look-through bandı**.
+- Her sonuç bir **güven skoru** taşır; portföyün başka fonlarda tutulan ve bu
+  nedenle görünmeyen payı oranında düşürülür.
+- Eğitilen model JSON olarak kaydedilir ve **dönemler arasında yeniden
+  kullanılabilir**; böylece sınıf adları raporlar arasında karşılaştırılabilir kalır.
+
+v0.1'deki kural tabanlı `archetype` kolonu aynen korunmuştur.
 
 ## Kurulum
 
@@ -95,6 +115,69 @@ print(selected_funds_report_to_markdown(comparison, language="en"))
 print(selected_funds_report_to_markdown(comparison, language="tr"))
 ```
 
+## Varlık dağılımı sınıflandırması
+
+Evreni sınıflandırıp modeli eğitmek için:
+
+```bash
+python scripts/classify_funds.py \
+  --db-path data/besfundlens.sqlite \
+  --lookback 3m \
+  --fit \
+  --model-path models/allocation_classifier.json \
+  --output reports/classification.md \
+  --language tr
+```
+
+Aynı modeli farklı bir pencerede kullanmak için (sınıf adları sabit kalır):
+
+```bash
+python scripts/classify_funds.py \
+  --db-path data/besfundlens.sqlite \
+  --lookback 1m \
+  --predict \
+  --model-path models/allocation_classifier.json \
+  --output reports/classification_1m.csv
+```
+
+Python API:
+
+```python
+from besfundlens import classify_funds_from_sqlite
+
+result = classify_funds_from_sqlite(
+    db_path="data/besfundlens.sqlite",
+    lookback="3m",
+    save_model_to="models/allocation_classifier.json",
+)
+
+df = result["classification_df"]
+print(df[[
+    "fonKodu", "asset_class_tr", "class_confidence",
+    "risk_band_tr", "currency_band_tr", "participation_class_tr", "style_drift",
+]].head())
+```
+
+Tüm eşikler ayarlanabilir:
+
+```python
+from besfundlens import ClassificationConfig, classify_funds_from_sqlite
+
+config = ClassificationConfig(
+    feature_space="detailed",       # broad | detailed | raw
+    k_range=(6, 20),                # silhouette ile bu aralıkta seçilir
+    risk_band_method="quantile",    # fixed | quantile | kmeans1d
+    risk_band_edges=(5.0, 25.0, 55.0),
+    currency_band_threshold=50.0,
+    lookthrough_penalty=True,
+)
+
+result = classify_funds_from_sqlite(db_path="data/besfundlens.sqlite", config=config)
+```
+
+Sınıflandırma piyasa anlatı raporuna otomatik olarak eklenir.
+Atlamak için `run_universe_analysis()` çağrısına `classify=False` verin.
+
 ## Lookback presetleri
 
 | Preset | Anlamı |
@@ -119,12 +202,14 @@ Cache güncelleyici, dönem değiştirme yaklaşımı kullanır: güncelleme ba�
 
 ```text
 besfundlens/
-  core/       # analiz motoru
-  data/       # API istemcisi ve veri yükleyiciler
-  storage/    # SQLite cache yardımcıları
-  reports/    # markdown rapor yardımcıları
-scripts/      # CLI tarzı scriptler
-examples/     # küçük demolar
+  core/            # analiz motoru, varlık metadata'sı, ortak yardımcılar
+  classification/  # v2 varlık dağılımı sınıflandırma katmanı
+  data/            # API istemcisi ve veri yükleyiciler
+  storage/         # SQLite cache yardımcıları
+  reports/         # markdown rapor yardımcıları
+scripts/           # CLI tarzı scriptler
+examples/          # küçük demolar
+docs/              # metodoloji notları
 sample_reports/
 tests/
 ```

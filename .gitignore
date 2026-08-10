@@ -2,6 +2,8 @@
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+.idea/
+.vscode/
 *.sqlite
 *.db
 .DS_Store

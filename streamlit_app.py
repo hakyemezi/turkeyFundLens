@@ -90,7 +90,23 @@ def percent(value):
     return "—" if pd.isna(value) else f"{float(value) * 100:.2f}%"
 
 
-def quadrant_chart(df):
+def axis_limits(series, lower=0.01, upper=0.99, pad=0.1):
+    """
+    A range that holds the bulk of the values.
+
+    A handful of small funds post flows of several hundred percent, and letting
+    them set the axis squeezes everyone else onto a line through zero. The
+    outliers stay in the data and can be panned to, they just do not get to
+    decide the default view.
+    """
+    low, high = series.quantile(lower), series.quantile(upper)
+    if not pd.notna(low) or not pd.notna(high) or low == high:
+        return None
+    margin = (high - low) * pad
+    return [float(low - margin), float(high + margin)]
+
+
+def quadrant_chart(df, zoom_to_bulk=True):
     """
     Market effect against investor flow, one point per fund.
 
@@ -103,20 +119,18 @@ def quadrant_chart(df):
     data["flow_display"] = data["flow_pct"] * 100
     data["aum_display"] = data["end_aum"].fillna(0)
 
+    x_limits = axis_limits(data["market_effect_display"]) if zoom_to_bulk else None
+    y_limits = axis_limits(data["flow_display"]) if zoom_to_bulk else None
+
+    x_scale = alt.Scale(zero=False, domain=x_limits, clamp=True) if x_limits else alt.Scale(zero=False)
+    y_scale = alt.Scale(zero=False, domain=y_limits, clamp=True) if y_limits else alt.Scale(zero=False)
+
     points = (
         alt.Chart(data)
         .mark_circle(opacity=0.65)
         .encode(
-            x=alt.X(
-                "market_effect_display:Q",
-                title="Market effect (%)",
-                scale=alt.Scale(zero=False),
-            ),
-            y=alt.Y(
-                "flow_display:Q",
-                title="Estimated investor flow (%)",
-                scale=alt.Scale(zero=False),
-            ),
+            x=alt.X("market_effect_display:Q", title="Market effect (%)", scale=x_scale),
+            y=alt.Y("flow_display:Q", title="Estimated investor flow (%)", scale=y_scale),
             size=alt.Size(
                 "aum_display:Q",
                 title="AUM",
@@ -220,38 +234,68 @@ kpi[4].metric(
     percent(summary["total_net_flow"] / summary["total_start_aum"]),
 )
 
-market_tab, funds_tab, report_tab = st.tabs(["Market map", "Funds", "Report"])
+# A dataframe mounted inside a hidden st.tabs pane measures itself at zero width
+# and paints only its first column, so the views are switched with a control that
+# renders one at a time. It also keeps the report markdown from being built on
+# every run when nobody is looking at it.
+view = st.segmented_control(
+    "View",
+    ["Market map", "Funds", "Report"],
+    default="Market map",
+    label_visibility="collapsed",
+)
 
 # ----------------------------------------------------------------- market
 
-with market_tab:
-    st.altair_chart(quadrant_chart(universe), use_container_width=True)
-    st.caption(
+if view == "Market map":
+    zoom_to_bulk = st.checkbox(
+        "Zoom to the bulk of the universe",
+        value=True,
+        help="A few small funds post flows of several hundred percent. Left in the "
+             "frame they flatten everyone else onto the zero line.",
+    )
+
+    st.altair_chart(quadrant_chart(universe, zoom_to_bulk))
+
+    caption = (
         "Each circle is a fund, sized by AUM. Right of the vertical line the market "
         "lifted it; above the horizontal line investors put money in. The interesting "
         "funds are the ones off the diagonal — growing on flows while the market fell, "
-        "or losing investors through a rally."
+        "or losing investors through a rally. Scroll to zoom, drag to pan."
     )
+    if zoom_to_bulk:
+        plotted = universe.dropna(subset=["market_effect_pct", "flow_pct"])
+        x_range = axis_limits(plotted["market_effect_pct"] * 100)
+        y_range = axis_limits(plotted["flow_pct"] * 100)
+        if x_range and y_range:
+            outside = (
+                ~(plotted["market_effect_pct"] * 100).between(*x_range)
+                | ~(plotted["flow_pct"] * 100).between(*y_range)
+            ).sum()
+            if outside:
+                caption += (
+                    f" {outside} fund{'s' if outside != 1 else ''} sit outside this "
+                    "frame and are drawn at its edge; untick the box to see them."
+                )
+    st.caption(caption)
 
     left, right = st.columns(2)
     with left:
         st.subheader("By quadrant")
         st.dataframe(
             summary_table(market_report["quadrant_summary"], "market_flow_quadrant"),
-            use_container_width=True,
-            hide_index=True,
+                hide_index=True,
         )
     with right:
         st.subheader("By archetype")
         st.dataframe(
             summary_table(market_report["archetype_summary"], "archetype"),
-            use_container_width=True,
-            hide_index=True,
+                hide_index=True,
         )
 
 # ----------------------------------------------------------------- funds
 
-with funds_tab:
+if view == "Funds":
     filters = st.columns([2, 2, 3])
 
     archetypes = sorted(universe["archetype"].dropna().unique())
@@ -278,15 +322,14 @@ with funds_tab:
 
     st.dataframe(
         view[[c for c in FUND_COLUMNS if c in view.columns]],
-        use_container_width=True,
         hide_index=True,
         height=560,
         column_config={
             "fonKodu": st.column_config.TextColumn("Code", width="small"),
             "fonUnvan": st.column_config.TextColumn("Fund", width="large"),
             "archetype": st.column_config.TextColumn("Archetype"),
-            "end_aum": st.column_config.NumberColumn("AUM", format="%,.0f"),
-            "end_participants": st.column_config.NumberColumn("Participants", format="%,.0f"),
+            "end_aum": st.column_config.NumberColumn("AUM", format="compact"),
+            "end_participants": st.column_config.NumberColumn("Participants", format="localized"),
             "market_flow_quadrant": st.column_config.TextColumn("Quadrant"),
             "flow_regime": st.column_config.TextColumn("Flow regime"),
             **{
@@ -309,7 +352,7 @@ with funds_tab:
 
 # ----------------------------------------------------------------- report
 
-with report_tab:
+if view == "Report":
     st.download_button(
         "Download the report as Markdown",
         markdown.encode("utf-8"),

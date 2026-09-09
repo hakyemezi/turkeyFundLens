@@ -244,7 +244,7 @@ Cache güncelleyici, dönem değiştirme yaklaşımı kullanır: güncelleme ba�
 ```text
 streamlit_app.py     # web arayüzü
 besfundlens/
-  core/            # analiz motoru, varlık metadata'sı, ortak yardımcılar
+  core/            # analiz motoru, varlık metadata'sı, ortak yardımcılar, metinler
   classification/  # v2 varlık dağılımı sınıflandırma katmanı
   data/            # API istemcisi ve veri yükleyiciler
   storage/         # SQLite cache yardımcıları

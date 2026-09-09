@@ -5,6 +5,7 @@ Generated package: `besfundlens` (v0.2.0).
 ## Included
 
 - Import-safe analytics engine (`besfundlens/core/engine.py`)
+- Report wording and label translations (`besfundlens/core/localization.py`)
 - Shared utilities (`besfundlens/core/utils.py`)
 - Asset metadata and Fund DNA aggregation (`besfundlens/core/asset_metadata.py`)
 - Allocation classification layer (`besfundlens/classification/`)

@@ -244,7 +244,7 @@ The cache updater uses a period replacement approach: it removes records from th
 ```text
 streamlit_app.py     # web interface
 besfundlens/
-  core/            # analytics engine, asset metadata, shared utilities
+  core/            # analytics engine, asset metadata, shared utilities, wording
   classification/  # v2 allocation classification layer
   data/            # API client and loaders
   storage/         # SQLite cache utilities

@@ -109,6 +109,8 @@ UI = {
         "col_participant_change": "Participant change %",
         "keep_one": "Select at least one column.",
         "download_csv": "Download this view as CSV",
+        "missing_days": "{n} business day(s) in this window have no published data: {days}. "
+                        "The analysis still runs, but a gap can distort a short lookback.",
         "view_detail": "Fund detail",
         "pick_fund": "Pick a fund",
         "detail_what_moved": "What moved its AUM",
@@ -214,6 +216,8 @@ UI = {
         "col_participant_change": "Katılımcı değişimi %",
         "keep_one": "En az bir sütun seçin.",
         "download_csv": "Bu görünümü CSV olarak indir",
+        "missing_days": "Bu dönemde {n} iş gününe ait veri yayımlanmamış: {days}. "
+                        "Analiz yine de çalışır, ancak boşluk kısa dönemleri bozabilir.",
         "view_detail": "Fon detayı",
         "pick_fund": "Bir fon seçin",
         "detail_what_moved": "AUM'unu ne hareket ettirdi",

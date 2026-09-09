@@ -248,7 +248,6 @@ besfundlens/
   classification/  # v2 varlık dağılımı sınıflandırma katmanı
   data/            # API istemcisi ve veri yükleyiciler
   storage/         # SQLite cache yardımcıları
-  reports/         # markdown rapor yardımcıları
 scripts/           # CLI tarzı scriptler
 examples/          # küçük demolar
 docs/              # metodoloji notları

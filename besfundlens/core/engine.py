@@ -427,7 +427,7 @@ def fund_dna_snapshot(
 
     if fund_data.empty:
         if verbose:
-            print(f"{fund_code} kodlu fon bulunamadı.")
+            print(f"Fund {fund_code} not found.")
         return None
 
     # DNA için dağılım verisi olan son satırı tercih ediyoruz.
@@ -630,7 +630,7 @@ def fund_flow_snapshot(
 
     if fund_data.empty:
         if verbose:
-            print(f"{fund_code} kodlu fon bulunamadı.")
+            print(f"Fund {fund_code} not found.")
         return None
 
     fund_data = fund_data.sort_values("tarih").reset_index(drop=True)
@@ -639,7 +639,7 @@ def fund_flow_snapshot(
 
     if fund_data.shape[0] < needed_observations:
         if verbose:
-            print(f"{fund_code} için yeterli zaman serisi yok.")
+            print(f"Not enough history for fund {fund_code}.")
         return None
 
     recent = fund_data.tail(needed_observations).copy()
@@ -1700,7 +1700,7 @@ def summarize_lens_by(
     df = lens_universe_df.copy()
 
     if group_col not in df.columns:
-        raise ValueError(f"{group_col} kolonu lens_universe_df içinde yok.")
+        raise ValueError(f"Column {group_col} is not in lens_universe_df.")
 
     universe_start_aum = df["start_aum"].sum()
     rows = []

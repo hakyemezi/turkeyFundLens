@@ -248,7 +248,6 @@ besfundlens/
   classification/  # v2 allocation classification layer
   data/            # API client and loaders
   storage/         # SQLite cache utilities
-  reports/         # markdown report helpers
 scripts/           # CLI-style scripts
 examples/          # small demos
 docs/              # methodology notes

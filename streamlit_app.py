@@ -18,6 +18,7 @@ import streamlit as st
 
 import besfundlens as bfl
 from besfundlens.core.engine import report_label
+from besfundlens.data.calendar_quality import check_missing_business_days
 from besfundlens.data.loaders import load_data
 
 from app_translations import LANGUAGES, MONTHS, UI
@@ -141,7 +142,11 @@ def analyse_live(lookback, language, valid_only):
     if df_general.empty or df_allocation.empty:
         return None
 
-    return pack(
+    # A day TEFAS never published is invisible in the result but shifts a short
+    # lookback, so the gaps are counted here and reported on the page.
+    missing = check_missing_business_days(df_general)
+
+    return (missing,) + pack(
         bfl.run_universe_analysis_from_dataframes(
             df_general,
             df_allocation,
@@ -155,7 +160,7 @@ def analyse_live(lookback, language, valid_only):
 @st.cache_data(show_spinner=False)
 def analyse_cache(db_path, lookback, language, valid_only):
     """Analyse a local SQLite cache, which can hold far more history."""
-    return pack(
+    return (pd.DatetimeIndex([]),) + pack(
         bfl.run_universe_analysis_from_sqlite(
             db_path=db_path,
             lookback=lookback,
@@ -442,7 +447,7 @@ if analysis is None:
     st.error(t("empty_response"))
     st.stop()
 
-universe, market_report, markdown, intervals = analysis
+missing_days, universe, market_report, markdown, intervals = analysis
 universe, market_report = localize(universe, market_report, language)
 summary = market_report["universe_summary"]
 
@@ -459,6 +464,12 @@ st.caption(
     + t("funds_count", n=fund_count) + " · "
     + t("window", lookback=lookback, intervals=intervals, date=first_date)
 )
+
+if len(missing_days):
+    days = ", ".join(format_date(d) for d in missing_days[:5])
+    if len(missing_days) > 5:
+        days += " …"
+    st.warning(t("missing_days", n=len(missing_days), days=days))
 
 kpi = st.columns(5)
 kpi[0].metric(t("kpi_end_aum"), money(summary["total_end_aum"]))

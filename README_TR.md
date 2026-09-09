@@ -209,6 +209,8 @@ yatırımcı akışı. Piyasa düşerken girişle büyüyen fonlar kendi köşes
 Yanında kuadran ve arketip özetleri, filtrelenebilir fon tablosu, CSV dışa
 aktarma ve Markdown rapor bulunur.
 
+Fon detay görünümü aynı soruyu tek fona indirger: AUM değişimi neyden oluştu, portföy DNA'sı nedir ve evrenin geri kalanına göre nerede duruyor.
+
 Bir yıldan uzun analizler için projeyi kendi bilgisayarınızda çalıştırın ve
 `scripts/fetch_history.py` ile oluşturduğunuz SQLite cache'i kullanın. Kenar
 çubuğu ikisi arasında geçiş yapar.

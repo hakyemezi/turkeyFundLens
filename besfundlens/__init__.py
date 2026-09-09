@@ -15,7 +15,10 @@ from .core.engine import (
     print_build_info,
     resolve_lookback_intervals,
     translate_archetype,
+    translate_asset_group,
+    translate_currency_exposure,
     translate_flow_regime,
+    translate_market_scope,
     translate_quadrant_name,
 )
 
@@ -54,7 +57,10 @@ __all__ = [
     "print_build_info",
     "resolve_lookback_intervals",
     "translate_archetype",
+    "translate_asset_group",
+    "translate_currency_exposure",
     "translate_flow_regime",
+    "translate_market_scope",
     "translate_quadrant_name",
     # v2 allocation classification
     "AllocationClassifier",

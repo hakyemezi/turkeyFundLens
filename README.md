@@ -210,6 +210,8 @@ investor flow — the funds that grew on inflows while the market fell sit in
 their own corner — plus the quadrant and archetype summaries, a filterable fund
 table with CSV export, and the Markdown report.
 
+A fund detail view narrows the same question to one fund: what its AUM change was made of, its portfolio DNA, and where it sits against the rest of the universe.
+
 For anything longer than a year, run it locally and point it at a SQLite cache
 built with `scripts/fetch_history.py`. The sidebar switches between the two.
 

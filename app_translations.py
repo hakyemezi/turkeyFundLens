@@ -109,6 +109,26 @@ UI = {
         "col_participant_change": "Participant change %",
         "keep_one": "Select at least one column.",
         "download_csv": "Download this view as CSV",
+        "view_detail": "Fund detail",
+        "pick_fund": "Pick a fund",
+        "detail_what_moved": "What moved its AUM",
+        "detail_start_aum": "Start AUM",
+        "detail_decomp_note": "AUM change is market effect plus estimated investor "
+                              "flow. A fund can grow while investors leave, or shrink "
+                              "while they arrive — that gap is the point of the split.",
+        "detail_dna": "Portfolio DNA",
+        "detail_top_asset": "Largest asset group",
+        "detail_scope": "Market scope",
+        "detail_currency": "Currency exposure",
+        "detail_lookthrough": "Held in other funds",
+        "detail_lookthrough_help": "The share of the portfolio held through other "
+                                   "funds, whose own holdings are not visible here.",
+        "detail_position": "Where it sits in the universe",
+        "detail_highlighted": "This fund is ringed; the rest of the universe is faded.",
+        "detail_participants": "Participants",
+        "detail_participant_change": "Participant change",
+        "bar_market_effect": "Market effect",
+        "bar_flow": "Investor flow",
         "download_report": "Download the report as Markdown",
     },
 
@@ -194,6 +214,27 @@ UI = {
         "col_participant_change": "Katılımcı değişimi %",
         "keep_one": "En az bir sütun seçin.",
         "download_csv": "Bu görünümü CSV olarak indir",
+        "view_detail": "Fon detayı",
+        "pick_fund": "Bir fon seçin",
+        "detail_what_moved": "AUM'unu ne hareket ettirdi",
+        "detail_start_aum": "Başlangıç AUM",
+        "detail_decomp_note": "AUM değişimi, piyasa etkisi ile tahmini yatırımcı "
+                              "akışının toplamıdır. Bir fon yatırımcı çıkarken büyüyebilir "
+                              "ya da yatırımcı girerken küçülebilir; bu ayrımın amacı tam "
+                              "olarak o farkı görmektir.",
+        "detail_dna": "Portföy DNA'sı",
+        "detail_top_asset": "En büyük varlık grubu",
+        "detail_scope": "Piyasa kapsamı",
+        "detail_currency": "Döviz maruziyeti",
+        "detail_lookthrough": "Diğer fonlarda tutulan",
+        "detail_lookthrough_help": "Portföyün başka fonlar aracılığıyla tutulan payı; "
+                                   "o fonların kendi varlıkları burada görünmez.",
+        "detail_position": "Evrende nerede duruyor",
+        "detail_highlighted": "Bu fon halkalı gösterildi, evrenin geri kalanı soluklaştırıldı.",
+        "detail_participants": "Katılımcı",
+        "detail_participant_change": "Katılımcı değişimi",
+        "bar_market_effect": "Piyasa etkisi",
+        "bar_flow": "Yatırımcı akışı",
         "download_report": "Raporu Markdown olarak indir",
     },
 }

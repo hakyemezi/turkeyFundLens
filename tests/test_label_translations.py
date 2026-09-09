@@ -81,3 +81,38 @@ def test_unknown_labels_pass_through_rather_than_raising():
     assert translate_archetype("Something New Fund", "tr") == "Something New Fund"
     assert translate_flow_regime("Some new regime", "tr") == "Some new regime"
     assert translate_archetype(None, "tr") is None
+
+
+def test_dna_labels_translate():
+    from besfundlens.core.engine import (
+        translate_asset_group,
+        translate_currency_exposure,
+        translate_market_scope,
+    )
+
+    assert translate_asset_group("Fixed Income", "tr") == "Sabit Getirili"
+    assert translate_market_scope("Domestic", "tr") == "Yurt içi"
+    assert translate_currency_exposure("FX", "tr") == "Döviz"
+
+    # a currency code is a code in both languages
+    assert translate_currency_exposure("TRY", "tr") == "TRY"
+
+    for label in ("Fixed Income", "Domestic", "FX"):
+        assert translate_asset_group(label, "en") == label
+        assert translate_market_scope(label, "en") == label
+        assert translate_currency_exposure(label, "en") == label
+
+
+def test_every_dna_value_the_engine_emits_is_covered():
+    """Guards against a scope or currency label being added without a translation."""
+    from besfundlens.core.engine import (
+        CURRENCY_TRANSLATIONS,
+        SCOPE_TRANSLATIONS,
+        currency_exposure_map,
+        market_scope_map,
+    )
+
+    for value in set(market_scope_map.values()):
+        assert value in SCOPE_TRANSLATIONS["tr"], value
+    for value in set(currency_exposure_map.values()):
+        assert value in CURRENCY_TRANSLATIONS["tr"], value

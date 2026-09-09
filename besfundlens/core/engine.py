@@ -2514,6 +2514,33 @@ def _build_flow_regime_translations() -> dict:
 
 FLOW_REGIME_TRANSLATIONS = _build_flow_regime_translations()
 
+# The Fund DNA scope and currency labels. Asset groups are not repeated here,
+# translate_asset_group reads them from GROUP_LABELS_TR.
+SCOPE_TRANSLATIONS = {
+    "tr": {
+        "Domestic": "Yurt içi",
+        "Foreign / International": "Yurt dışı / Uluslararası",
+        "Commodity / Global Pricing": "Emtia / Küresel Fiyatlama",
+        "Operational / Cash-like": "Operasyonel / Nakit Benzeri",
+        "Look-through Required": "Look-through Gerekli",
+        "Other / Unknown": "Diğer / Bilinmeyen",
+    }
+}
+SCOPE_TRANSLATIONS["en"] = {key: key for key in SCOPE_TRANSLATIONS["tr"]}
+
+CURRENCY_TRANSLATIONS = {
+    "tr": {
+        "TRY": "TRY",
+        "FX": "Döviz",
+        "Gold": "Altın",
+        "Operational / Collateral": "Operasyonel / Teminat",
+        "Mixed / Unknown": "Karma / Bilinmeyen",
+        "Look-through Required": "Look-through Gerekli",
+        "Other / Unknown": "Diğer / Bilinmeyen",
+    }
+}
+CURRENCY_TRANSLATIONS["en"] = {key: key for key in CURRENCY_TRANSLATIONS["tr"]}
+
 
 def report_label(key: str, language: str = DEFAULT_LANGUAGE) -> str:
     """
@@ -2571,6 +2598,31 @@ def translate_flow_regime(regime: str, language: str = DEFAULT_LANGUAGE) -> str:
     """
     language = normalize_language(language)
     return FLOW_REGIME_TRANSLATIONS[language].get(regime, regime)
+
+
+def translate_asset_group(group: str, language: str = DEFAULT_LANGUAGE) -> str:
+    """
+    Translate a broad asset group name, as used by the Fund DNA columns.
+    """
+    if normalize_language(language) == "en":
+        return group
+    return GROUP_LABELS_TR.get(group, group)
+
+
+def translate_market_scope(scope: str, language: str = DEFAULT_LANGUAGE) -> str:
+    """
+    Translate a market scope label.
+    """
+    language = normalize_language(language)
+    return SCOPE_TRANSLATIONS[language].get(scope, scope)
+
+
+def translate_currency_exposure(currency: str, language: str = DEFAULT_LANGUAGE) -> str:
+    """
+    Translate a currency exposure label. Currency codes are left as they are.
+    """
+    language = normalize_language(language)
+    return CURRENCY_TRANSLATIONS[language].get(currency, currency)
 
 
 def get_quadrant_pattern_message(quadrant: str, language: str = DEFAULT_LANGUAGE) -> str:

@@ -214,7 +214,18 @@ def money(value):
 
 
 def percent(value):
+    """For the _pct columns, which the engine stores as decimals."""
     return "—" if pd.isna(value) else f"{float(value) * 100:.2f}%"
+
+
+def weight(value):
+    """
+    For the DNA weight columns, which the engine already stores as percentages.
+
+    lens_universe_df mixes the two conventions: flow_pct is 0.0027 while
+    top_asset_weight is 56.17. Running the second through percent() gives 5617%.
+    """
+    return "—" if pd.isna(value) else f"{float(value):.2f}%"
 
 
 def axis_limits(series, lower=0.01, upper=0.99, pad=0.1):
@@ -280,6 +291,81 @@ def quadrant_chart(df, zoom_to_bulk=True):
     zero_y = alt.Chart(pd.DataFrame({"v": [0]})).mark_rule(strokeDash=[4, 4]).encode(y="v:Q")
 
     return (points + zero_x + zero_y).interactive().properties(height=520)
+
+
+def decomposition_chart(fund):
+    """
+    The two forces behind one fund's AUM change, in lira.
+
+    This is the project's whole argument narrowed to a single fund: the bar on
+    the left is what the market did to the money already there, the one on the
+    right is what investors put in or took out.
+    """
+    data = pd.DataFrame(
+        {
+            "part": [t("bar_market_effect"), t("bar_flow")],
+            "value": [
+                float(fund["total_market_effect"] or 0),
+                float(fund["total_net_flow"] or 0),
+            ],
+        }
+    )
+    data["sign"] = data["value"].map(lambda v: "+" if v >= 0 else "-")
+
+    bars = (
+        alt.Chart(data)
+        .mark_bar()
+        .encode(
+            x=alt.X("value:Q", title="TL"),
+            y=alt.Y("part:N", title=None, sort=None),
+            color=alt.Color(
+                "sign:N",
+                scale=alt.Scale(domain=["+", "-"], range=["#2e9e83", "#d1495b"]),
+                legend=None,
+            ),
+            tooltip=[
+                alt.Tooltip("part:N", title=""),
+                alt.Tooltip("value:Q", title="TL", format=",.0f"),
+            ],
+        )
+    )
+    zero = alt.Chart(pd.DataFrame({"v": [0]})).mark_rule(color="#888").encode(x="v:Q")
+    return (bars + zero).properties(height=140)
+
+
+def universe_with_highlight(df, fund_code):
+    """The universe scatter with one fund ringed and the rest faded back."""
+    data = df.dropna(subset=["market_effect_pct", "flow_pct"]).copy()
+    data["market_effect_display"] = data["market_effect_pct"] * 100
+    data["flow_display"] = data["flow_pct"] * 100
+
+    x_limits = axis_limits(data["market_effect_display"])
+    y_limits = axis_limits(data["flow_display"])
+    x_scale = alt.Scale(zero=False, domain=x_limits, clamp=True) if x_limits else alt.Scale(zero=False)
+    y_scale = alt.Scale(zero=False, domain=y_limits, clamp=True) if y_limits else alt.Scale(zero=False)
+
+    base = alt.Chart(data).encode(
+        x=alt.X("market_effect_display:Q", title=t("axis_market"), scale=x_scale),
+        y=alt.Y("flow_display:Q", title=t("axis_flow"), scale=y_scale),
+    )
+
+    others = base.transform_filter(alt.datum.fonKodu != fund_code).mark_circle(
+        opacity=0.18, color="#9aa0a6", size=45
+    )
+    chosen = base.transform_filter(alt.datum.fonKodu == fund_code).mark_point(
+        size=260, filled=True, opacity=0.95, color="#d1495b", stroke="#000", strokeWidth=1
+    ).encode(
+        tooltip=[
+            alt.Tooltip("fonKodu:N", title=t("col_code")),
+            alt.Tooltip("market_effect_display:Q", title=t("col_market_effect"), format=".2f"),
+            alt.Tooltip("flow_display:Q", title=t("col_flow"), format=".2f"),
+        ]
+    )
+
+    zero_x = alt.Chart(pd.DataFrame({"v": [0]})).mark_rule(strokeDash=[4, 4]).encode(x="v:Q")
+    zero_y = alt.Chart(pd.DataFrame({"v": [0]})).mark_rule(strokeDash=[4, 4]).encode(y="v:Q")
+
+    return (others + zero_x + zero_y + chosen).properties(height=420)
 
 
 def summary_table(df, label_column, heading):
@@ -391,12 +477,28 @@ kpi[4].metric(
 # and paints only its first column, so the views are switched with a control that
 # renders one at a time. It also keeps the report markdown from being built on
 # every run when nobody is looking at it.
-views = [t("view_market"), t("view_funds"), t("view_report")]
-view = st.segmented_control("View", views, default=views[0], label_visibility="collapsed")
+# Selected by a stable key rather than by its translated label, so switching
+# language keeps you on the view you were reading.
+# The chosen view is remembered outside the widget. Keying the widget itself
+# was not enough: changing language re-renders it and it comes back with
+# nothing selected, which used to drop you back on the market map.
+VIEWS = ["market", "funds", "detail", "report"]
+remembered = st.session_state.get("last_view", "market")
+
+selected = st.segmented_control(
+    "View",
+    VIEWS,
+    default=remembered,
+    format_func=lambda name: t(f"view_{name}"),
+    label_visibility="collapsed",
+)
+
+view = selected or remembered
+st.session_state["last_view"] = view
 
 # ------------------------------------------------------------------ market
 
-if view == views[0]:
+if view == "market":
     zoom_to_bulk = st.checkbox(t("zoom"), value=True, help=t("zoom_help"))
 
     st.altair_chart(quadrant_chart(universe, zoom_to_bulk))
@@ -431,7 +533,7 @@ if view == views[0]:
 
 # ------------------------------------------------------------------ funds
 
-if view == views[1]:
+if view == "funds":
     filters = st.columns([2, 2, 3])
 
     archetypes = sorted(universe["archetype"].dropna().unique())
@@ -483,9 +585,77 @@ if view == views[1]:
         mime="text/csv",
     )
 
+# ------------------------------------------------------------------ fund detail
+
+if view == "detail":
+    options = universe.sort_values("fonKodu")["fonKodu"].tolist()
+    names = universe.set_index("fonKodu")["fonUnvan"].to_dict()
+
+    code = st.selectbox(
+        t("pick_fund"),
+        options,
+        format_func=lambda c: f"{c} — {names.get(c, '')}",
+    )
+    fund = universe[universe["fonKodu"] == code].iloc[0]
+
+    st.subheader(fund["fonUnvan"])
+    st.caption(f"{fund['archetype']} · {fund['market_flow_quadrant']} · {fund['flow_regime']}")
+
+    top = st.columns(5)
+    top[0].metric(t("detail_start_aum"), money(fund["start_aum"]))
+    top[1].metric(t("kpi_end_aum"), money(fund["end_aum"]))
+    top[2].metric(label("return"), percent(fund["cumulative_return"]))
+    top[3].metric(t("detail_participants"), f"{int(fund['end_participants']):,}")
+    top[4].metric(
+        t("detail_participant_change"),
+        percent(fund["participant_change_pct"]),
+        delta=f"{int(fund['participant_change']):,}",
+    )
+
+    left, right = st.columns([3, 2])
+
+    with left:
+        st.markdown(f"**{t('detail_what_moved')}**")
+        st.altair_chart(decomposition_chart(fund))
+
+        parts = st.columns(3)
+        parts[0].metric(label("aum_change"), percent(fund["aum_change_pct"]))
+        parts[1].metric(label("market_effect"), percent(fund["market_effect_pct"]))
+        parts[2].metric(label("flow"), percent(fund["flow_pct"]))
+        st.caption(t("detail_decomp_note"))
+
+    with right:
+        st.markdown(f"**{t('detail_dna')}**")
+        dna = pd.DataFrame(
+            {
+                " ": [
+                    t("detail_top_asset"),
+                    t("detail_scope"),
+                    t("detail_currency"),
+                    t("detail_lookthrough"),
+                ],
+                "  ": [
+                    f"{bfl.translate_asset_group(fund['top_asset_group'], language)} "
+                    f"— {weight(fund['top_asset_weight'])}",
+                    f"{bfl.translate_market_scope(fund['top_scope'], language)} "
+                    f"— {weight(fund['top_scope_weight'])}",
+                    f"{bfl.translate_currency_exposure(fund['top_currency'], language)} "
+                    f"— {weight(fund['top_currency_weight'])}",
+                    weight(fund["lookthrough_weight"]),
+                ],
+            }
+        )
+        st.dataframe(dna, hide_index=True)
+        st.caption(t("detail_lookthrough_help"))
+
+    st.markdown(f"**{t('detail_position')}**")
+    st.altair_chart(universe_with_highlight(universe, code))
+    st.caption(t("detail_highlighted"))
+
+
 # ------------------------------------------------------------------ report
 
-if view == views[2]:
+if view == "report":
     st.download_button(
         t("download_report"),
         markdown.encode("utf-8"),

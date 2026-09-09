@@ -42,6 +42,7 @@ from besfundlens.classification.report import (
     build_classification_sections,
     classification_note_lines,
 )
+from besfundlens.classification.taxonomy import GROUP_LABELS_TR
 
 pd.set_option('display.expand_frame_repr', False)
 
@@ -2448,6 +2449,71 @@ QUADRANT_PATTERN_MESSAGES = {
     },
 }
 
+# The named archetypes classify_fund_archetype can return. The
+# "{group} Dominant Fund" family is not listed, translate_archetype builds it
+# from GROUP_LABELS_TR so that it tracks the asset group map.
+ARCHETYPE_TRANSLATIONS = {
+    "tr": {
+        "Money Market Fund": "Para Piyasası Fonu",
+        "Domestic Equity Fund": "Yerli Hisse Senedi Fonu",
+        "Foreign Equity Fund": "Yabancı Hisse Senedi Fonu",
+        "Domestic Fixed-Income Fund": "Yerli Sabit Getirili Fon",
+        "Foreign Fixed-Income Fund": "Yabancı Sabit Getirili Fon",
+        "Fixed-Income Fund": "Sabit Getirili Fon",
+        "FX / Eurobond Fixed-Income Fund": "Döviz / Eurobond Sabit Getirili Fon",
+        "Domestic Fixed-Income Dominant Multi-Asset Fund": "Yerli Sabit Getirili Ağırlıklı Çok Varlıklı Fon",
+        "Foreign Fixed-Income Dominant Multi-Asset Fund": "Yabancı Sabit Getirili Ağırlıklı Çok Varlıklı Fon",
+        "Fixed-Income Dominant Multi-Asset Fund": "Sabit Getirili Ağırlıklı Çok Varlıklı Fon",
+        "Multi-Asset / Mixed Allocation Fund": "Çok Varlıklı / Karma Dağılımlı Fon",
+        "Gold / Precious Metals Fund": "Altın / Kıymetli Maden Fonu",
+        "Fund Allocation Dominant Fund": "Fon Sepeti Ağırlıklı Fon",
+        "Unknown Fund Type": "Bilinmeyen Fon Türü",
+    }
+}
+ARCHETYPE_TRANSLATIONS["en"] = {key: key for key in ARCHETYPE_TRANSLATIONS["tr"]}
+
+# classify_flow_regime_v2 composes its label from a magnitude and a participant
+# clause. Turkish puts the participant clause first, so the phrases cannot be
+# assembled in the same order; the whole set is generated from the same pieces
+# the engine itself uses, which keeps the two in step if a magnitude is added.
+FLOW_MAGNITUDE_TRANSLATIONS_TR = {
+    "Neutral / negligible": "nötr / ihmal edilebilir",
+    "Small": "küçük",
+    "Moderate": "ılımlı",
+    "Strong": "güçlü",
+    "Unknown": "bilinmeyen",
+}
+
+# English clause -> Turkish phrase, with {magnitude} where the magnitude goes
+FLOW_REGIME_CLAUSES_TR = {
+    "net inflow with participant growth": "katılımcı artışıyla {magnitude} net giriş",
+    "net inflow without participant growth": "katılımcı artışı olmadan {magnitude} net giriş",
+    "net inflow with stable participant count": "katılımcı sayısı sabitken {magnitude} net giriş",
+    "net outflow with participant decline": "katılımcı azalışıyla {magnitude} net çıkış",
+    "net outflow despite participant growth": "katılımcı artışına rağmen {magnitude} net çıkış",
+    "net outflow with stable participant count": "katılımcı sayısı sabitken {magnitude} net çıkış",
+}
+
+# The regimes that carry no magnitude
+FLOW_REGIME_STANDALONE_TR = {
+    "Neutral flow with participant growth": "Katılımcı artışıyla nötr akış",
+    "Neutral flow with participant decline": "Katılımcı azalışıyla nötr akış",
+    "Neutral flow regime": "Nötr akış rejimi",
+    "Unknown flow regime": "Bilinmeyen akış rejimi",
+}
+
+
+def _build_flow_regime_translations() -> dict:
+    turkish = dict(FLOW_REGIME_STANDALONE_TR)
+    for magnitude, magnitude_tr in FLOW_MAGNITUDE_TRANSLATIONS_TR.items():
+        for clause, clause_tr in FLOW_REGIME_CLAUSES_TR.items():
+            phrase = clause_tr.format(magnitude=magnitude_tr)
+            turkish[f"{magnitude} {clause}"] = phrase[0].upper() + phrase[1:]
+    return {"en": {key: key for key in turkish}, "tr": turkish}
+
+
+FLOW_REGIME_TRANSLATIONS = _build_flow_regime_translations()
+
 
 def report_label(key: str, language: str = DEFAULT_LANGUAGE) -> str:
     """
@@ -2471,6 +2537,40 @@ def translate_dominance_strength(strength: str, language: str = DEFAULT_LANGUAGE
     """
     language = normalize_language(language)
     return DOMINANCE_TRANSLATIONS[language].get(strength, strength)
+
+
+def translate_archetype(archetype: str, language: str = DEFAULT_LANGUAGE) -> str:
+    """
+    Translate a v1 archetype label.
+
+    ``classify_fund_archetype`` returns either one of the named archetypes or,
+    when a single asset group dominates, ``f"{group} Dominant Fund"`` built from
+    the broad asset group map. The second family is translated from the group
+    labels rather than being listed here, so a new asset group is covered the
+    moment it is added to the map.
+    """
+    language = normalize_language(language)
+    if language == "en" or not isinstance(archetype, str):
+        return archetype
+
+    if archetype in ARCHETYPE_TRANSLATIONS[language]:
+        return ARCHETYPE_TRANSLATIONS[language][archetype]
+
+    if archetype.endswith(" Dominant Fund"):
+        group = archetype[: -len(" Dominant Fund")]
+        translated = GROUP_LABELS_TR.get(group)
+        if translated:
+            return f"{translated} Ağırlıklı Fon"
+
+    return archetype
+
+
+def translate_flow_regime(regime: str, language: str = DEFAULT_LANGUAGE) -> str:
+    """
+    Translate a flow regime label.
+    """
+    language = normalize_language(language)
+    return FLOW_REGIME_TRANSLATIONS[language].get(regime, regime)
 
 
 def get_quadrant_pattern_message(quadrant: str, language: str = DEFAULT_LANGUAGE) -> str:

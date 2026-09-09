@@ -190,18 +190,57 @@ Classification is merged into the market narrative report automatically. Pass
 
 The project uses **available observations / intervals**, not calendar days. This is important because fund data may skip weekends, public holidays, or missing publication dates.
 
+## Web interface
+
+```bash
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
+
+The page opens on **live data**: it fetches the lookback window straight from
+TEFAS, so whoever opens it sees the latest published day rather than whatever
+was in a cache when it was built. Roughly 10 seconds for a one-month window and
+about a minute for a year, cached for six hours after that. The header always
+states the date the data runs through.
+
+The interface itself is bilingual too: a selector in the sidebar switches the whole page, and the archetype, quadrant and flow regime labels in the table and chart are translated along with it, not just the report.
+
+It shows the universe as one scatter of market effect against estimated
+investor flow — the funds that grew on inflows while the market fell sit in
+their own corner — plus the quadrant and archetype summaries, a filterable fund
+table with CSV export, and the Markdown report.
+
+For anything longer than a year, run it locally and point it at a SQLite cache
+built with `scripts/fetch_history.py`. The sidebar switches between the two.
+
 ## Data ingestion strategy
 
-besFundLens supports two workflows:
+besFundLens supports three workflows:
 
-1. **Direct API mode** for quick experiments and notebooks.
+1. **Direct API mode** for quick experiments, notebooks and the web interface.
 2. **SQLite cache mode** for multi-year analysis and repeated reporting.
+3. **turkeyfundsdata frames**, via `load_turkeyfundsdata_frame`.
+
+[turkeyfundsdata](https://github.com/hakyemezi/turkeyfundsdata) reads the same
+TEFAS endpoints and can pull up to five years in one call, but it returns price
+and allocation merged into a single frame with upper-cased column names. The
+loader splits that back into the two frames the engine expects:
+
+```python
+from tefas import get_fund_data_for_years
+from besfundlens.data.loaders import load_turkeyfundsdata_frame
+
+df_general, df_allocation = load_turkeyfundsdata_frame(
+    get_fund_data_for_years(5, "EMK")
+)
+```
 
 The cache updater uses a period replacement approach: it removes records from the update start date onward and appends freshly fetched data. This is intentional because financial fund data may receive late corrections.
 
 ## Repository structure
 
 ```text
+streamlit_app.py     # web interface
 besfundlens/
   core/            # analytics engine, asset metadata, shared utilities
   classification/  # v2 allocation classification layer

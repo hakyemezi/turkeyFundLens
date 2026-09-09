@@ -14,6 +14,9 @@ from .core.engine import (
     save_markdown_report,
     print_build_info,
     resolve_lookback_intervals,
+    translate_archetype,
+    translate_flow_regime,
+    translate_quadrant_name,
 )
 
 from .classification import (
@@ -50,6 +53,9 @@ __all__ = [
     "save_markdown_report",
     "print_build_info",
     "resolve_lookback_intervals",
+    "translate_archetype",
+    "translate_flow_regime",
+    "translate_quadrant_name",
     # v2 allocation classification
     "AllocationClassifier",
     "ClassificationConfig",

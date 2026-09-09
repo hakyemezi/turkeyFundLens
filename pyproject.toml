@@ -20,6 +20,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+# The web interface. The library itself does not need Streamlit, so installing
+# besfundlens as a dependency does not drag it in; requirements.txt has it
+# because that is the file Streamlit Cloud reads.
+app = ["streamlit>=1.30"]
 
 [tool.setuptools.packages.find]
 where = ["."]

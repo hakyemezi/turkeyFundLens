@@ -18,6 +18,9 @@ Generated package: `besfundlens` (v0.2.0).
   - `report.py` — bilingual Markdown sections
 - TEFAS/Fonturkey data client (`besfundlens/data/tefas_client.py`)
 - Optional SQLite cache layer (`besfundlens/storage/sqlite_store.py`)
+- Streamlit web interface (`streamlit_app.py`, `app_translations.py`), fetching
+  live from TEFAS with the SQLite cache as the alternative source
+- `load_turkeyfundsdata_frame()` for frames from the turkeyfundsdata repository
 - Workflow helpers (`besfundlens/workflows.py`)
 - English and Turkish sample reports
 - CLI scripts for fetching, updating, generating reports, comparing and classifying funds
@@ -29,10 +32,13 @@ Generated package: `besfundlens` (v0.2.0).
 - Python compile check for all `.py` files
 - Duplicate function definition check per file
 - Import-safe package test without local DB
-- Pytest suite (35 tests): imports, localization, lookback, synthetic analytics
-  smoke test, and the classification suite (model recovery, k selection, model
-  persistence round-trip, stability and drift, secondary axes, taxonomy naming,
-  engine integration, bilingual reporting, config validation)
+- Pytest suite (58 tests): imports, localization, lookback, the AUM decomposition
+  arithmetic on constructed cases where the answer is known, label translations
+  checked against the values the engine can actually emit, the turkeyfundsdata
+  loader, a synthetic analytics smoke test, and the classification suite (model
+  recovery, k selection, model persistence round-trip, stability and drift,
+  secondary axes, taxonomy naming, engine integration, bilingual reporting,
+  config validation)
 - Live-data validation on a 399-fund BES universe:
   - the participation axis was cross-checked against fund names — 120 of the 121
     funds named "katılım" are detected, and the one exception is a fund-of-funds

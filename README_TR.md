@@ -189,18 +189,56 @@ Atlamak için `run_universe_analysis()` çağrısına `classify=False` verin.
 
 Proje takvim günü yerine **mevcut gözlemler / aralıklar** kullanır. Bu önemlidir; çünkü fon verileri hafta sonları, resmi tatiller veya eksik yayın tarihleri nedeniyle kesintiye uğrayabilir.
 
+## Web arayüzü
+
+```bash
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
+
+Sayfa **canlı veriyle** açılır: lookback penceresini doğrudan TEFAS'tan çeker,
+böylece sayfayı açan kişi bir cache oluşturulduğu andaki veriyi değil, en son
+yayımlanan günü görür. Bir aylık pencere yaklaşık 10 saniye, bir yıllık ise
+yaklaşık bir dakika sürer; sonrasında altı saat önbelleklenir. Başlıkta verinin
+hangi tarihe kadar olduğu her zaman yazar.
+
+Evreni tek bir dağılım grafiğinde gösterir: piyasa etkisine karşı tahmini
+yatırımcı akışı. Piyasa düşerken girişle büyüyen fonlar kendi köşesinde durur.
+Yanında kuadran ve arketip özetleri, filtrelenebilir fon tablosu, CSV dışa
+aktarma ve Markdown rapor bulunur.
+
+Bir yıldan uzun analizler için projeyi kendi bilgisayarınızda çalıştırın ve
+`scripts/fetch_history.py` ile oluşturduğunuz SQLite cache'i kullanın. Kenar
+çubuğu ikisi arasında geçiş yapar.
+
 ## Veri alma stratejisi
 
-besFundLens iki iş akışını destekler:
+besFundLens üç iş akışını destekler:
 
-1. Hızlı denemeler ve notebook çalışmaları için **doğrudan API modu**.
+1. Hızlı denemeler, notebook çalışmaları ve web arayüzü için **doğrudan API modu**.
 2. Çok yıllı analizler ve tekrar eden raporlamalar için **SQLite cache modu**.
+3. `load_turkeyfundsdata_frame` ile **turkeyfundsdata çerçeveleri**.
+
+[turkeyfundsdata](https://github.com/hakyemezi/turkeyfundsdata) aynı TEFAS uç
+noktalarını okur ve tek çağrıda beş yıla kadar veri çekebilir; ancak fiyat ile
+dağılımı tek bir çerçevede birleştirip kolon adlarını büyük harfe çevirir.
+Yükleyici bunu motorun beklediği iki çerçeveye geri ayırır:
+
+```python
+from tefas import get_fund_data_for_years
+from besfundlens.data.loaders import load_turkeyfundsdata_frame
+
+df_general, df_allocation = load_turkeyfundsdata_frame(
+    get_fund_data_for_years(5, "EMK")
+)
+```
 
 Cache güncelleyici, dönem değiştirme yaklaşımı kullanır: güncelleme başlangıç tarihinden itibaren kayıtları siler ve yeni çekilen veriyi ekler. Bu bilinçli bir tercihtir; çünkü finansal fon verilerinde geriye dönük düzeltmeler gelebilir.
 
 ## Repo yapısı
 
 ```text
+streamlit_app.py     # web arayüzü
 besfundlens/
   core/            # analiz motoru, varlık metadata'sı, ortak yardımcılar
   classification/  # v2 varlık dağılımı sınıflandırma katmanı

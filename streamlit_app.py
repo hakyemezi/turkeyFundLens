@@ -18,6 +18,7 @@ import pandas as pd
 import streamlit as st
 
 import besfundlens as bfl
+from besfundlens.data.loaders import load_data
 
 st.set_page_config(page_title="besFundLens", page_icon="🔍", layout="wide")
 
@@ -25,6 +26,17 @@ DEFAULT_DB = "data/besfundlens.sqlite"
 
 # The engine's own presets, ordered from short to long
 LOOKBACKS = ["1m", "3m", "6m", "1y"]
+
+# How much calendar history to pull for each lookback. A little more than the
+# window itself, because the engine counts trading days and needs the window
+# fully covered before it will call a record valid.
+FETCH_MONTHS = {"1m": 1, "3m": 3, "6m": 6, "1y": 12}
+
+# Measured against the live API: three months of EMK took 15 seconds over four
+# chunked requests. TEFAS caps a request at about a month and answers with an
+# empty result rather than an error when asked for more, or when asked too
+# quickly, so the client chunks and paces itself and the wait grows with range.
+FETCH_SECONDS = {"1m": 10, "3m": 15, "6m": 30, "1y": 60}
 
 LANGUAGES = {"English": "en", "Türkçe": "tr"}
 
@@ -53,27 +65,57 @@ PERCENT_COLUMNS = [
 ]
 
 
-@st.cache_data(show_spinner=False)
-def load_analysis(db_path, lookback, language, valid_only, classify):
-    """
-    Run the universe analysis and hand back only the picklable parts.
-
-    Cached on its arguments, so changing a filter in the sidebar does not
-    re-read the database and re-run the engine.
-    """
-    result = bfl.run_universe_analysis_from_sqlite(
-        db_path=db_path,
-        lookback=lookback,
-        language=language,
-        valid_only=valid_only,
-        classify=classify,
-    )
+def pack(result):
+    """Keep only the picklable parts of an analysis, so it can be cached."""
     return (
         result["lens_universe_df"],
         result["market_report"],
         result["markdown"],
         result["lookback_intervals"],
-        result.get("classification_df"),
+    )
+
+
+@st.cache_data(show_spinner=False, ttl=6 * 60 * 60)
+def analyse_live(lookback, language, valid_only):
+    """
+    Fetch the window straight from TEFAS, then analyse it.
+
+    There is no stored database behind this. The cost is one fetch per lookback
+    per boot, which the six hour cache holds on to, and in exchange whoever
+    opens the page gets the latest published day rather than whatever was in a
+    snapshot when it was built.
+    """
+    end = pd.Timestamp.today().normalize()
+    start = end - pd.DateOffset(months=FETCH_MONTHS[lookback]) - pd.Timedelta(days=10)
+
+    df_general, df_allocation = load_data(
+        source="api", start_date=start, end_date=end, verbose=False
+    )
+    if df_general.empty or df_allocation.empty:
+        return None
+
+    return pack(
+        bfl.run_universe_analysis_from_dataframes(
+            df_general,
+            df_allocation,
+            lookback=lookback,
+            valid_only=valid_only,
+            language=language,
+        )
+    )
+
+
+@st.cache_data(show_spinner=False)
+def analyse_cache(db_path, lookback, language, valid_only):
+    """Analyse a local SQLite cache, which can hold far more history."""
+    return pack(
+        bfl.run_universe_analysis_from_sqlite(
+            db_path=db_path,
+            lookback=lookback,
+            language=language,
+            valid_only=valid_only,
+            classify=False,
+        )
     )
 
 
@@ -175,9 +217,30 @@ def summary_table(df, label_column):
 st.sidebar.title("🔍 besFundLens")
 st.sidebar.caption(bfl.BUILD_VERSION)
 
-db_path = st.sidebar.text_input("SQLite cache", value=DEFAULT_DB)
+has_cache = Path(DEFAULT_DB).exists()
+
+source = st.sidebar.radio(
+    "Data",
+    ["Live from TEFAS", "Local SQLite cache"],
+    index=0 if not has_cache else 0,
+    help="Live fetches the window on demand, so the page always reflects the "
+         "latest published day. The cache is for local use, where years of "
+         "history are already on disk.",
+)
+live = source == "Live from TEFAS"
+
+db_path = DEFAULT_DB
+if not live:
+    db_path = st.sidebar.text_input("Cache path", value=DEFAULT_DB)
 
 lookback = st.sidebar.select_slider("Lookback", options=LOOKBACKS, value="1m")
+
+if live:
+    st.sidebar.caption(
+        f"Fetching {FETCH_MONTHS[lookback]} month"
+        f"{'s' if FETCH_MONTHS[lookback] != 1 else ''} takes roughly "
+        f"{FETCH_SECONDS[lookback]} seconds on a cold start, then it is cached."
+    )
 
 language_name = st.sidebar.radio("Report language", list(LANGUAGES), horizontal=True)
 language = LANGUAGES[language_name]
@@ -188,37 +251,69 @@ valid_only = st.sidebar.checkbox(
     help="Drops funds whose history does not cover the whole lookback window.",
 )
 
-classify = st.sidebar.checkbox(
-    "Run allocation classification",
-    value=False,
-    help="Fits the v2 clustering model over the window. Slower, and only needed for the Classification tab.",
+st.sidebar.divider()
+st.sidebar.markdown(
+    """
+**Want to go deeper than a year?**
+
+Run this project on your own machine. Locally you can build a SQLite cache of
+several years and analyse the whole span, without waiting on a fetch each time:
+
+```bash
+python scripts/fetch_history.py \\
+  --start 2021-06-15 --end 2026-06-15 \\
+  --db-path data/besfundlens.sqlite
+```
+
+[**turkeyfundsdata**](https://github.com/hakyemezi/turkeyfundsdata) pulls up to
+five years from the same TEFAS endpoints, and `load_turkeyfundsdata_frame`
+in `besfundlens.data.loaders` takes its output directly.
+"""
 )
 
-if not Path(db_path).exists():
+if not live and not Path(db_path).exists():
     st.warning(
-        f"No SQLite cache at `{db_path}`.\n\n"
-        "Build one first:\n\n"
-        "```bash\n"
-        "python scripts/fetch_history.py --start 2021-06-15 --end 2026-06-15 "
-        "--db-path data/besfundlens.sqlite\n"
-        "```"
+        f"No SQLite cache at `{db_path}`. Switch to **Live from TEFAS**, or "
+        "build a cache with the command in the sidebar."
     )
     st.stop()
 
 # ----------------------------------------------------------------- analysis
 
-with st.spinner(f"Running the {lookback} analysis"):
-    universe, market_report, markdown, intervals, classification = load_analysis(
-        db_path, lookback, language, valid_only, classify
+if live:
+    spinner_text = (
+        f"Fetching {FETCH_MONTHS[lookback]} months from TEFAS and analysing "
+        f"— about {FETCH_SECONDS[lookback]} seconds"
     )
+else:
+    spinner_text = f"Running the {lookback} analysis"
+
+with st.spinner(spinner_text):
+    analysis = (
+        analyse_live(lookback, language, valid_only)
+        if live
+        else analyse_cache(db_path, lookback, language, valid_only)
+    )
+
+if analysis is None:
+    st.error(
+        "TEFAS returned nothing for that window. It answers with an empty "
+        "result rather than an error when it is being called too quickly, so "
+        "waiting a minute and rerunning usually fixes it."
+    )
+    st.stop()
+
+universe, market_report, markdown, intervals = analysis
 
 summary = market_report["universe_summary"]
 
 st.title("Did the market move it, or did investors?")
 st.caption(
-    f"{int(summary['fund_count']):,} funds · {lookback} lookback "
-    f"({intervals} trading intervals) · "
-    f"{universe['start_date'].max():%Y-%m-%d} to {universe['end_date'].max():%Y-%m-%d}"
+    f"**Data through {universe['end_date'].max():%d %B %Y}** "
+    f"({'fetched from TEFAS' if live else 'from the local cache'}) · "
+    f"{int(summary['fund_count']):,} funds · "
+    f"{lookback} lookback, {intervals} trading intervals, "
+    f"from {universe['start_date'].max():%d %B %Y}"
 )
 
 kpi = st.columns(5)

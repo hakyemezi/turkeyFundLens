@@ -202,6 +202,8 @@ yayımlanan günü görür. Bir aylık pencere yaklaşık 10 saniye, bir yıllı
 yaklaşık bir dakika sürer; sonrasında altı saat önbelleklenir. Başlıkta verinin
 hangi tarihe kadar olduğu her zaman yazar.
 
+Arayüzün kendisi de çift dillidir: kenar çubuğundaki seçici tüm sayfayı değiştirir ve tablodaki ile grafikteki fon tipi, rejim ve akış rejimi etiketleri de raporla birlikte çevrilir.
+
 Evreni tek bir dağılım grafiğinde gösterir: piyasa etkisine karşı tahmini
 yatırımcı akışı. Piyasa düşerken girişle büyüyen fonlar kendi köşesinde durur.
 Yanında kuadran ve arketip özetleri, filtrelenebilir fon tablosu, CSV dışa

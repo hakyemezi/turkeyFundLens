@@ -203,6 +203,8 @@ was in a cache when it was built. Roughly 10 seconds for a one-month window and
 about a minute for a year, cached for six hours after that. The header always
 states the date the data runs through.
 
+The interface itself is bilingual too: a selector in the sidebar switches the whole page, and the archetype, quadrant and flow regime labels in the table and chart are translated along with it, not just the report.
+
 It shows the universe as one scatter of market effect against estimated
 investor flow — the funds that grew on inflows while the market fell sit in
 their own corner — plus the quadrant and archetype summaries, a filterable fund

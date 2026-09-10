@@ -13,10 +13,9 @@ dist/
 build/
 *.egg-info/
 .cache/
-.pytest_cache/
-dist/
-build/
-*.egg-info/
-.cache/
 models/
 reports/
+
+# Local staging snapshots, kept out of the repository
+UAT/
+UAT[0-9]/

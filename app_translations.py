@@ -111,6 +111,8 @@ UI = {
         "download_csv": "Download this view as CSV",
         "missing_days": "{n} business day(s) in this window have no published data: {days}. "
                         "The analysis still runs, but a gap can distort a short lookback.",
+        "too_short": "The {lookback} window reaches further back than the loaded "
+                     "data covers. Pick a shorter lookback, or extend the cache.",
         "view_detail": "Fund detail",
         "pick_fund": "Pick a fund",
         "detail_what_moved": "What moved its AUM",
@@ -218,6 +220,8 @@ UI = {
         "download_csv": "Bu görünümü CSV olarak indir",
         "missing_days": "Bu dönemde {n} iş gününe ait veri yayımlanmamış: {days}. "
                         "Analiz yine de çalışır, ancak boşluk kısa dönemleri bozabilir.",
+        "too_short": "{lookback} dönemi, yüklü verinin kapsadığından daha geriye "
+                     "gidiyor. Daha kısa bir dönem seçin ya da cache'i genişletin.",
         "view_detail": "Fon detayı",
         "pick_fund": "Bir fon seçin",
         "detail_what_moved": "AUM'unu ne hareket ettirdi",

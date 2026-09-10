@@ -14,7 +14,7 @@ import pytest
 from besfundlens.core.engine import initialize_engine, run_universe_analysis
 
 
-def analyse(prices, units, participants=None):
+def analyse(prices, units, participants=None, lookback=None):
     """Run one synthetic fund through the engine and return its universe row."""
     dates = pd.to_datetime([f"2026-01-{day:02d}" for day in range(1, len(prices) + 1)])
     participants = participants or [10] * len(prices)
@@ -40,7 +40,7 @@ def analyse(prices, units, participants=None):
     )
 
     initialize_engine(df_general, df_allocation)
-    result = run_universe_analysis(lookback=len(dates) - 1, valid_only=False)
+    result = run_universe_analysis(lookback=lookback or len(dates) - 1, valid_only=False)
     return result["lens_universe_df"].iloc[0]
 
 
@@ -118,3 +118,12 @@ def test_participant_change_is_tracked_separately_from_flow():
     assert fund["flow_pct"] > 0
     assert fund["participant_change"] == 0
     assert fund["participant_change_pct"] == pytest.approx(0.0, abs=1e-9)
+
+
+def test_a_lookback_longer_than_the_data_says_so_clearly():
+    """
+    Asking for more history than is loaded used to surface as a KeyError on
+    start_aum several frames deep, which says nothing about what to change.
+    """
+    with pytest.raises(ValueError, match="longer than the loaded data"):
+        analyse(prices=[1.0, 1.01, 1.02], units=[1000, 1000, 1000], lookback=120)

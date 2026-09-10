@@ -1868,6 +1868,13 @@ def add_market_flow_quadrant(lens_universe_df: pd.DataFrame) -> pd.DataFrame:
     """
     df = lens_universe_df.copy()
 
+    # apply() over an empty frame hands back an empty DataFrame rather than a
+    # Series, and assigning that to a column raises. An empty universe is a
+    # normal outcome when the lookback is longer than the data on hand.
+    if df.empty:
+        df["market_flow_quadrant"] = pd.Series(dtype="object")
+        return df
+
     df["market_flow_quadrant"] = df.apply(
         lambda row: classify_market_flow_quadrant(
             row["market_effect_pct"],
@@ -2889,10 +2896,20 @@ def run_universe_analysis(
         valid_only=valid_only,
     )
 
-    if not lens_universe.empty:
-        lens_universe = add_universe_segments(lens_universe)
-        lens_universe = add_market_flow_quadrant(lens_universe)
-        lens_universe["legacy_archetype"] = lens_universe["archetype"]
+    if lens_universe.empty:
+        # Almost always the lookback reaching further back than the data does.
+        # Everything downstream assumes columns that an empty universe has none
+        # of, so it used to surface as a KeyError on start_aum several frames
+        # deep, which says nothing about what to do differently.
+        raise ValueError(
+            f"No fund met the {resolved_lookback}-interval lookback. "
+            "The window is probably longer than the loaded data covers — "
+            "fetch more history, or ask for a shorter lookback."
+        )
+
+    lens_universe = add_universe_segments(lens_universe)
+    lens_universe = add_market_flow_quadrant(lens_universe)
+    lens_universe["legacy_archetype"] = lens_universe["archetype"]
 
     classification_df = None
     classification_result = None

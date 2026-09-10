@@ -437,11 +437,17 @@ spinner_text = (
 )
 
 with st.spinner(spinner_text):
-    analysis = (
-        analyse_live(lookback, language, valid_only)
-        if live
-        else analyse_cache(db_path, lookback, language, valid_only)
-    )
+    try:
+        analysis = (
+            analyse_live(lookback, language, valid_only)
+            if live
+            else analyse_cache(db_path, lookback, language, valid_only)
+        )
+    except ValueError:
+        # The engine raises when no fund covers the window, which for a cache
+        # holding a few months is what asking for a year looks like.
+        st.warning(t("too_short", lookback=lookback))
+        st.stop()
 
 if analysis is None:
     st.error(t("empty_response"))

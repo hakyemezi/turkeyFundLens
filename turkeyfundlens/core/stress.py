@@ -34,7 +34,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from besfundlens.core.engine import (
+from turkeyfundlens.core.engine import (
     UNIVERSE_MIN_START_AUM,
     add_flow_features,
     parse_tarih,

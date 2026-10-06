@@ -6,7 +6,7 @@ instrument code. This module maps those codes onto economic groupings
 (broad asset group, market scope, currency exposure) and aggregates the raw
 allocation columns into Fund DNA columns.
 
-Moved out of ``besfundlens.core.engine`` so that ``besfundlens.classification``
+Moved out of ``turkeyfundlens.core.engine`` so that ``turkeyfundlens.classification``
 can build its own feature spaces from the same metadata without importing the
 engine. ``engine`` re-exports every public name defined here.
 """
@@ -17,7 +17,7 @@ from typing import Optional
 
 import pandas as pd
 
-from besfundlens.core.utils import make_safe_col_name
+from turkeyfundlens.core.utils import make_safe_col_name
 
 
 # ============================================================

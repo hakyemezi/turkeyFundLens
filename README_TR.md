@@ -1,14 +1,19 @@
-# besFundLens
+# turkeyFundLens
 
-**Türkiye emeklilik fonları için İngilizce öncelikli, iki dilli raporlamaya hazır analiz motoru.**
+**Türkiye emeklilik ve menkul kıymet yatırım fonları için İngilizce öncelikli, iki dilli raporlamaya hazır analiz motoru.**
 
-besFundLens, emeklilik fonlarının AUM hareketlerini **piyasa etkisi** ve **tahmini yatırımcı akışı** olarak ayrıştırır; portföy DNA'sını haritalar, fonları varlık dağılımına göre sınıflandırır, piyasa-akış rejimlerini belirler ve iki dilli Markdown raporlar üretir.
+> Eski adı **besFundLens**. Başladığı emeklilik (BES) fonlarına menkul kıymet
+> yatırım fonları eklendiğinde, Ekim 2026'da yeniden adlandırıldı. Eski repo
+> linkleri buraya yönlenir; `import besfundlens` de kullanımdan kaldırma
+> uyarısıyla çalışmaya devam eder.
+
+turkeyFundLens, fonların AUM hareketlerini **piyasa etkisi** ve **tahmini yatırımcı akışı** olarak ayrıştırır; portföy DNA'sını haritalar, fonları varlık dağılımına göre sınıflandırır, piyasa-akış rejimlerini belirler ve iki dilli Markdown raporlar üretir.
 
 > Proje iki TEFAS evrenini kapsar: BES / emeklilik fonları (`EMK`) ve menkul kıymet yatırım fonları (`YAT`). Her biri kendi evreni olarak analiz edilir. Fiyat tahmin modeli olmaktan ziyade yeniden kullanılabilir bir analiz motoru olarak tasarlanmıştır.
 
 ## Bu proje neden var?
 
-Fon analizlerinin çoğu getiri ve AUM değişimi seviyesinde kalır. besFundLens daha derin bir soru sorar:
+Fon analizlerinin çoğu getiri ve AUM değişimi seviyesinde kalır. turkeyFundLens daha derin bir soru sorar:
 
 > AUM piyasalar hareket ettiği için mi değişti, yoksa yatırımcılar para eklediği/çektiği için mi?
 
@@ -59,19 +64,19 @@ SQLite zorunlu değildir; ancak çok yıllı analizler ve tekrar eden iş akış
 python scripts/fetch_history.py \
   --start 2021-06-15 \
   --end 2026-06-15 \
-  --db-path data/besfundlens.sqlite
+  --db-path data/turkeyfundlens.sqlite
 ```
 
 Menkul kıymet yatırım fonları için `--fund-type YAT` ekleyin. `--db-path`
 verilmezse her fon türü kendi dosyasını kullanır (`YAT` için
-`data/besfundlens_yat.sqlite`); script yazdığı tabloları değiştirdiği için ortak
+`data/turkeyfundlens_yat.sqlite`); script yazdığı tabloları değiştirdiği için ortak
 bir dosyada bir evren diğerinin üzerine yazardı.
 
 İngilizce rapor üretmek için:
 
 ```bash
 python scripts/generate_report.py \
-  --db-path data/besfundlens.sqlite \
+  --db-path data/turkeyfundlens.sqlite \
   --lookback 1m \
   --language en \
   --output sample_reports/market_report_en.md
@@ -81,7 +86,7 @@ Türkçe rapor üretmek için:
 
 ```bash
 python scripts/generate_report.py \
-  --db-path data/besfundlens.sqlite \
+  --db-path data/turkeyfundlens.sqlite \
   --lookback 1m \
   --language tr \
   --output sample_reports/market_report_tr.md
@@ -90,10 +95,10 @@ python scripts/generate_report.py \
 ## Python API
 
 ```python
-from besfundlens.workflows import run_universe_analysis_from_sqlite
+from turkeyfundlens.workflows import run_universe_analysis_from_sqlite
 
 result = run_universe_analysis_from_sqlite(
-    db_path="data/besfundlens.sqlite",
+    db_path="data/turkeyfundlens.sqlite",
     lookback="1m",
     language="en",
     top_n=10,
@@ -105,11 +110,11 @@ print(result["markdown"])
 Seçili fon karşılaştırması:
 
 ```python
-from besfundlens.workflows import compare_funds_from_sqlite
-from besfundlens.core.engine import selected_funds_report_to_markdown
+from turkeyfundlens.workflows import compare_funds_from_sqlite
+from turkeyfundlens.core.engine import selected_funds_report_to_markdown
 
 comparison = compare_funds_from_sqlite(
-    db_path="data/besfundlens.sqlite",
+    db_path="data/turkeyfundlens.sqlite",
     fund_codes=["AAJ", "MHD", "MEA"],
     lookback="1m",
     sort_by="market_effect_pct",
@@ -126,7 +131,7 @@ Evreni sınıflandırıp modeli eğitmek için:
 
 ```bash
 python scripts/classify_funds.py \
-  --db-path data/besfundlens.sqlite \
+  --db-path data/turkeyfundlens.sqlite \
   --lookback 3m \
   --fit \
   --model-path models/allocation_classifier.json \
@@ -138,7 +143,7 @@ Aynı modeli farklı bir pencerede kullanmak için (sınıf adları sabit kalır
 
 ```bash
 python scripts/classify_funds.py \
-  --db-path data/besfundlens.sqlite \
+  --db-path data/turkeyfundlens.sqlite \
   --lookback 1m \
   --predict \
   --model-path models/allocation_classifier.json \
@@ -148,10 +153,10 @@ python scripts/classify_funds.py \
 Python API:
 
 ```python
-from besfundlens import classify_funds_from_sqlite
+from turkeyfundlens import classify_funds_from_sqlite
 
 result = classify_funds_from_sqlite(
-    db_path="data/besfundlens.sqlite",
+    db_path="data/turkeyfundlens.sqlite",
     lookback="3m",
     save_model_to="models/allocation_classifier.json",
 )
@@ -166,7 +171,7 @@ print(df[[
 Tüm eşikler ayarlanabilir:
 
 ```python
-from besfundlens import ClassificationConfig, classify_funds_from_sqlite
+from turkeyfundlens import ClassificationConfig, classify_funds_from_sqlite
 
 config = ClassificationConfig(
     feature_space="detailed",       # broad | detailed | raw
@@ -177,7 +182,7 @@ config = ClassificationConfig(
     lookthrough_penalty=True,
 )
 
-result = classify_funds_from_sqlite(db_path="data/besfundlens.sqlite", config=config)
+result = classify_funds_from_sqlite(db_path="data/turkeyfundlens.sqlite", config=config)
 ```
 
 Sınıflandırma piyasa anlatı raporuna otomatik olarak eklenir.
@@ -237,7 +242,7 @@ Fon detay görünümü aynı soruyu tek fona indirger: AUM değişimi neyden olu
 Stres görünümü, dönem toplamlarının gösteremediği yolu okur: girişlerle iki
 katına çıkıp bir günde üçte birini kaybeden ve sonra alım-satıma kapanan bir fon
 toplamda sağlıklı bir giriş gösterebilir; alım-satıma kapanmış bir fonun ise
-akışı hiç olmaz. `besfundlens.core.stress` şunları bulur:
+akışı hiç olmaz. `turkeyfundlens.core.stress` şunları bulur:
 
 - **olay tarihi**: sabitlenmez, her çalıştırmada veriden tespit edilir. Fonların
   olağandışı bir kısmının fiyatının aynı gün düştüğü gündür; ardından iki gün
@@ -258,7 +263,7 @@ Bir yıldan uzun analizler için projeyi kendi bilgisayarınızda çalıştırı
 
 ## Veri alma stratejisi
 
-besFundLens üç iş akışını destekler:
+turkeyFundLens üç iş akışını destekler:
 
 1. Hızlı denemeler, notebook çalışmaları ve web arayüzü için **doğrudan API modu**.
 2. Çok yıllı analizler ve tekrar eden raporlamalar için **SQLite cache modu**.
@@ -271,7 +276,7 @@ Yükleyici bunu motorun beklediği iki çerçeveye geri ayırır:
 
 ```python
 from tefas import get_fund_data_for_years
-from besfundlens.data.loaders import load_turkeyfundsdata_frame
+from turkeyfundlens.data.loaders import load_turkeyfundsdata_frame
 
 df_general, df_allocation = load_turkeyfundsdata_frame(
     get_fund_data_for_years(5, "EMK")
@@ -284,7 +289,7 @@ Cache güncelleyici, dönem değiştirme yaklaşımı kullanır: güncelleme ba�
 
 ```text
 streamlit_app.py     # web arayüzü
-besfundlens/
+turkeyfundlens/
   core/            # analiz motoru, varlık metadata'sı, ortak yardımcılar, metinler
   classification/  # v2 varlık dağılımı sınıflandırma katmanı
   data/            # API istemcisi ve veri yükleyiciler

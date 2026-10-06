@@ -3,8 +3,8 @@ The v1 labels the engine puts in lens_universe_df were English only, whatever
 the report language was. These cover the translations that fixed that.
 """
 
-from besfundlens.classification.taxonomy import GROUP_LABELS_TR
-from besfundlens.core.engine import (
+from turkeyfundlens.classification.taxonomy import GROUP_LABELS_TR
+from turkeyfundlens.core.engine import (
     FLOW_REGIME_TRANSLATIONS,
     broad_asset_group_map,
     classify_flow_regime_v2,
@@ -84,7 +84,7 @@ def test_unknown_labels_pass_through_rather_than_raising():
 
 
 def test_dna_labels_translate():
-    from besfundlens.core.engine import (
+    from turkeyfundlens.core.engine import (
         translate_asset_group,
         translate_currency_exposure,
         translate_market_scope,
@@ -105,7 +105,7 @@ def test_dna_labels_translate():
 
 def test_every_dna_value_the_engine_emits_is_covered():
     """Guards against a scope or currency label being added without a translation."""
-    from besfundlens.core.engine import (
+    from turkeyfundlens.core.engine import (
         CURRENCY_TRANSLATIONS,
         SCOPE_TRANSLATIONS,
         currency_exposure_map,
@@ -123,7 +123,7 @@ def test_securities_fund_regimes_speak_of_investors():
     YAT funds have investors, not participants. Every regime the engine can
     produce is reworded, in both languages, and none is left half done.
     """
-    from besfundlens.core.engine import translate_flow_regime
+    from turkeyfundlens.core.engine import translate_flow_regime
 
     flows = [0.2, 0.05, 0.005, 0.001, 0.0, -0.001, -0.005, -0.05, -0.2]
     produced = {

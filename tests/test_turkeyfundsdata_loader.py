@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from besfundlens.data.loaders import load_turkeyfundsdata_frame
+from turkeyfundlens.data.loaders import load_turkeyfundsdata_frame
 
 
 def sample_frame():

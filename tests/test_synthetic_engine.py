@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from besfundlens.core.engine import (
+from turkeyfundlens.core.engine import (
     initialize_engine,
     run_universe_analysis,
     compare_funds,

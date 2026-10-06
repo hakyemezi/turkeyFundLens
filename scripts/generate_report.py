@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import argparse
 
-from besfundlens.workflows import run_universe_analysis_from_sqlite
-from besfundlens.core.engine import save_markdown_report
+from turkeyfundlens.workflows import run_universe_analysis_from_sqlite
+from turkeyfundlens.core.engine import save_markdown_report
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate besFundLens market narrative report from SQLite cache.")
-    parser.add_argument("--db-path", default="data/besfundlens.sqlite")
+    parser = argparse.ArgumentParser(description="Generate turkeyFundLens market narrative report from SQLite cache.")
+    parser.add_argument("--db-path", default="data/turkeyfundlens.sqlite")
     parser.add_argument("--lookback", default="1m")
     parser.add_argument(
         "--start",

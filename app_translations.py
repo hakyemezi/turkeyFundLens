@@ -62,7 +62,7 @@ UI = {
                        "without waiting on a fetch each time:",
         "deeper_turkeyfundsdata": "[**turkeyfundsdata**](https://github.com/hakyemezi/turkeyfundsdata) "
                                   "pulls up to five years from the same TEFAS endpoints, and "
-                                  "`load_turkeyfundsdata_frame` in `besfundlens.data.loaders` "
+                                  "`load_turkeyfundsdata_frame` in `turkeyfundlens.data.loaders` "
                                   "takes its output directly.",
 
         # loading and errors
@@ -280,7 +280,7 @@ UI = {
                        "seferinde veri çekilmesini beklemezsiniz:",
         "deeper_turkeyfundsdata": "[**turkeyfundsdata**](https://github.com/hakyemezi/turkeyfundsdata) "
                                   "aynı TEFAS uç noktalarından beş yıla kadar veri çeker; "
-                                  "`besfundlens.data.loaders` içindeki `load_turkeyfundsdata_frame` "
+                                  "`turkeyfundlens.data.loaders` içindeki `load_turkeyfundsdata_frame` "
                                   "onun çıktısını doğrudan kabul eder.",
 
         # yükleme ve hatalar
@@ -467,7 +467,7 @@ UI = {
 # A pension plan has participants; a securities investment fund has investors.
 # TEFAS reports both as the same head count, so only the word changes. These
 # replace the keys above while the YAT universe is selected. The engine's own
-# labels are reworded by besfundlens.core.localization.investor_wording.
+# labels are reworded by turkeyfundlens.core.localization.investor_wording.
 UI_BY_FUND_TYPE = {
     "YAT": {
         "en": {

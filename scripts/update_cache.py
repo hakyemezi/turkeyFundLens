@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import argparse
 
-from besfundlens.config import DEFAULT_DB_PATHS, FUND_TYPE_PENSION, FUND_TYPES
-from besfundlens.data.tefas_client import FetchConfig
-from besfundlens.storage.sqlite_store import update_sqlite_cache
+from turkeyfundlens.config import DEFAULT_DB_PATHS, FUND_TYPE_PENSION, FUND_TYPES
+from turkeyfundlens.data.tefas_client import FetchConfig
+from turkeyfundlens.storage.sqlite_store import update_sqlite_cache
 
 
 def main() -> None:

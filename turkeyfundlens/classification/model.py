@@ -22,9 +22,9 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from besfundlens.classification.config import DEFAULT_CONFIG, ClassificationConfig
-from besfundlens.classification.features import apply_transform
-from besfundlens.classification.taxonomy import (
+from turkeyfundlens.classification.config import DEFAULT_CONFIG, ClassificationConfig
+from turkeyfundlens.classification.features import apply_transform
+from turkeyfundlens.classification.taxonomy import (
     assign_family,
     label_centroid,
     deduplicate_labels,
@@ -335,7 +335,7 @@ class AllocationClassifier:
         if version != ARTIFACT_VERSION:
             raise ValueError(
                 f"Unsupported model artifact version: {version}. Expected {ARTIFACT_VERSION}. "
-                "Re-fit the model with the current besFundLens version."
+                "Re-fit the model with the current turkeyFundLens version."
             )
 
         model = cls(ClassificationConfig.from_dict(payload.get("config", {})))

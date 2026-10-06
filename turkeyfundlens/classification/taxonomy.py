@@ -20,9 +20,9 @@ from typing import Sequence
 
 import numpy as np
 
-from besfundlens.core.asset_metadata import build_asset_metadata
-from besfundlens.core.utils import normalize_language
-from besfundlens.classification.config import DEFAULT_CONFIG, ClassificationConfig
+from turkeyfundlens.core.asset_metadata import build_asset_metadata
+from turkeyfundlens.core.utils import normalize_language
+from turkeyfundlens.classification.config import DEFAULT_CONFIG, ClassificationConfig
 
 # Broad asset group -> Turkish label.
 GROUP_LABELS_TR = {

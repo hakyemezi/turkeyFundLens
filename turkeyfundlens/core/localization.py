@@ -5,7 +5,7 @@ Everything the engine puts in front of a reader is named here: the report
 headings and column labels, and the translations for the labels it computes —
 quadrant, archetype, flow regime, and the Fund DNA scope and currency bands.
 
-Split out of ``besfundlens.core.engine``, which had grown to hold the analytics
+Split out of ``turkeyfundlens.core.engine``, which had grown to hold the analytics
 and all of their wording in one file. Nothing here touches the analytics; it
 needs only the language helpers and the classification group labels, and
 ``engine`` re-exports every name so existing imports keep working.
@@ -13,13 +13,13 @@ needs only the language helpers and the classification group labels, and
 
 from __future__ import annotations
 
-from besfundlens.classification.taxonomy import GROUP_LABELS_TR
-from besfundlens.core.utils import DEFAULT_LANGUAGE, normalize_language
+from turkeyfundlens.classification.taxonomy import GROUP_LABELS_TR
+from turkeyfundlens.core.utils import DEFAULT_LANGUAGE, normalize_language
 
 
 REPORT_LABELS = {
     "en": {
-        "market_report_title": "# besFundLens Market Narrative Report",
+        "market_report_title": "# turkeyFundLens Market Narrative Report",
         "selected_report_title": "# Selected Funds Comparison Report",
         "executive_summary": "## Executive Summary",
         "main_narrative": "## Main Narrative",
@@ -62,7 +62,7 @@ REPORT_LABELS = {
         "note_lookthrough": "Look-through-heavy funds should be analyzed with additional underlying fund exposure data.",
     },
     "tr": {
-        "market_report_title": "# besFundLens Piyasa Anlatı Raporu",
+        "market_report_title": "# turkeyFundLens Piyasa Anlatı Raporu",
         "selected_report_title": "# Seçili Fon Karşılaştırma Raporu",
         "executive_summary": "## Yönetici Özeti",
         "main_narrative": "## Ana Anlatı",

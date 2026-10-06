@@ -12,13 +12,13 @@ from typing import Optional
 
 import pandas as pd
 
-from besfundlens.core.utils import format_pct, normalize_language
-from besfundlens.classification.pipeline import summarize_classification
-from besfundlens.classification.taxonomy import translate_family
+from turkeyfundlens.core.utils import format_pct, normalize_language
+from turkeyfundlens.classification.pipeline import summarize_classification
+from turkeyfundlens.classification.taxonomy import translate_family
 
 CLASSIFICATION_LABELS = {
     "en": {
-        "report_title": "# besFundLens Allocation Classification Report",
+        "report_title": "# turkeyFundLens Allocation Classification Report",
         "asset_classes": "## Asset Allocation Classes",
         "risk_bands": "## Risk Bands",
         "currency_bands": "## Currency Exposure Bands",
@@ -72,7 +72,7 @@ CLASSIFICATION_LABELS = {
         ),
     },
     "tr": {
-        "report_title": "# besFundLens Varlık Dağılımı Sınıflandırma Raporu",
+        "report_title": "# turkeyFundLens Varlık Dağılımı Sınıflandırma Raporu",
         "asset_classes": "## Varlık Dağılımı Sınıfları",
         "risk_bands": "## Risk Bantları",
         "currency_bands": "## Kur Riski Bantları",

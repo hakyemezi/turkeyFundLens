@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from besfundlens.workflows import compare_funds_from_sqlite
-from besfundlens.core.engine import selected_funds_report_to_markdown
+from turkeyfundlens.workflows import compare_funds_from_sqlite
+from turkeyfundlens.core.engine import selected_funds_report_to_markdown
 
-DB_PATH = "data/besfundlens.sqlite"
+DB_PATH = "data/turkeyfundlens.sqlite"
 FUNDS = ["AAJ", "MHD", "MEA"]
 
 comparison = compare_funds_from_sqlite(

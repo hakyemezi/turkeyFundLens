@@ -2,13 +2,13 @@
 Shared, dependency-free helpers used by the analytics engine and the
 classification layer.
 
-These functions were originally defined inside ``besfundlens.core.engine``.
-They live here so that ``besfundlens.classification`` can reuse them without
+These functions were originally defined inside ``turkeyfundlens.core.engine``.
+They live here so that ``turkeyfundlens.classification`` can reuse them without
 importing the engine, which would create a circular import once the engine
 starts calling into the classification pipeline.
 
 ``engine`` re-exports every name defined here, so existing imports such as
-``from besfundlens.core.engine import safe_divide`` keep working unchanged.
+``from turkeyfundlens.core.engine import safe_divide`` keep working unchanged.
 """
 
 from __future__ import annotations

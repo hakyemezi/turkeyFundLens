@@ -7,7 +7,7 @@ that deals daily and then stops, a fund that takes money in and then loses it.
 import pandas as pd
 import pytest
 
-from besfundlens.core.stress import (
+from turkeyfundlens.core.stress import (
     EVENT_RUN,
     EVENT_SHOCK,
     EVENT_MANUAL,

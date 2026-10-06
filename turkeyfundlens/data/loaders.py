@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from besfundlens.data.tefas_client import FetchConfig, fetch_tefas_history
-from besfundlens.storage.sqlite_store import load_from_sqlite
+from turkeyfundlens.data.tefas_client import FetchConfig, fetch_tefas_history
+from turkeyfundlens.storage.sqlite_store import load_from_sqlite
 
 
 def load_from_csv(general_path: str | Path, allocation_path: str | Path) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -47,7 +47,7 @@ def load_turkeyfundsdata_frame(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataF
     separates them again and restores the original TEFAS column names.
 
         from tefas import get_fund_data_for_years
-        from besfundlens.data.loaders import load_turkeyfundsdata_frame
+        from turkeyfundlens.data.loaders import load_turkeyfundsdata_frame
 
         df_general, df_allocation = load_turkeyfundsdata_frame(
             get_fund_data_for_years(5, "EMK")

@@ -1,14 +1,14 @@
-# besFundLens Repository Manifest
+# turkeyFundLens Repository Manifest
 
-Generated package: `besfundlens` (v0.2.0).
+Generated package: `turkeyfundlens` (v0.2.0).
 
 ## Included
 
-- Import-safe analytics engine (`besfundlens/core/engine.py`)
-- Report wording and label translations (`besfundlens/core/localization.py`)
-- Shared utilities (`besfundlens/core/utils.py`)
-- Asset metadata and Fund DNA aggregation (`besfundlens/core/asset_metadata.py`)
-- Allocation classification layer (`besfundlens/classification/`)
+- Import-safe analytics engine (`turkeyfundlens/core/engine.py`)
+- Report wording and label translations (`turkeyfundlens/core/localization.py`)
+- Shared utilities (`turkeyfundlens/core/utils.py`)
+- Asset metadata and Fund DNA aggregation (`turkeyfundlens/core/asset_metadata.py`)
+- Allocation classification layer (`turkeyfundlens/classification/`)
   - `config.py` — all tunable thresholds
   - `features.py` — window-averaged allocation matrix and sub-window slices
   - `taxonomy.py` — centroid to human-readable class name (EN/TR)
@@ -17,12 +17,12 @@ Generated package: `besfundlens` (v0.2.0).
   - `stability.py` — class stability, style drift, allocation volatility
   - `pipeline.py` — `classify_universe()` orchestration
   - `report.py` — bilingual Markdown sections
-- TEFAS/Fonturkey data client (`besfundlens/data/tefas_client.py`)
-- Optional SQLite cache layer (`besfundlens/storage/sqlite_store.py`)
+- TEFAS/Fonturkey data client (`turkeyfundlens/data/tefas_client.py`)
+- Optional SQLite cache layer (`turkeyfundlens/storage/sqlite_store.py`)
 - Streamlit web interface (`streamlit_app.py`, `app_translations.py`), fetching
   live from TEFAS with the SQLite cache as the alternative source
 - `load_turkeyfundsdata_frame()` for frames from the turkeyfundsdata repository
-- Workflow helpers (`besfundlens/workflows.py`)
+- Workflow helpers (`turkeyfundlens/workflows.py`)
 - English and Turkish sample reports
 - CLI scripts for fetching, updating, generating reports, comparing and classifying funds
 - Classification methodology notes (`docs/CLASSIFICATION.md`)
@@ -56,10 +56,10 @@ Fitted classification models are written to `models/` and report output to
 
 ## Backward compatibility in v0.2.0
 
-`besfundlens/core/engine.py` no longer defines the generic helpers or the asset
+`turkeyfundlens/core/engine.py` no longer defines the generic helpers or the asset
 metadata maps — they moved to `core/utils.py` and `core/asset_metadata.py`. The
 engine re-exports every moved name, so imports such as
-`from besfundlens.core.engine import safe_divide` continue to work.
+`from turkeyfundlens.core.engine import safe_divide` continue to work.
 
 The v0.1 rule-based `classify_fund_archetype()` and the `archetype` column are
 unchanged.

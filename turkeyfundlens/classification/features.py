@@ -19,8 +19,8 @@ from typing import Optional, Union
 import numpy as np
 import pandas as pd
 
-from besfundlens.core.utils import resolve_lookback_intervals
-from besfundlens.classification.config import DEFAULT_CONFIG, ClassificationConfig
+from turkeyfundlens.core.utils import resolve_lookback_intervals
+from turkeyfundlens.classification.config import DEFAULT_CONFIG, ClassificationConfig
 
 ID_COLS = ["fonKodu", "fonUnvan", "tarih"]
 

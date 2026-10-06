@@ -14,15 +14,15 @@ from typing import Optional, Union
 
 import pandas as pd
 
-from besfundlens.core.utils import resolve_lookback_intervals
-from besfundlens.classification.axes import build_secondary_axes
-from besfundlens.classification.config import DEFAULT_CONFIG, ClassificationConfig
-from besfundlens.classification.features import (
+from turkeyfundlens.core.utils import resolve_lookback_intervals
+from turkeyfundlens.classification.axes import build_secondary_axes
+from turkeyfundlens.classification.config import DEFAULT_CONFIG, ClassificationConfig
+from turkeyfundlens.classification.features import (
     build_allocation_features,
     build_sub_window_features,
 )
-from besfundlens.classification.model import AllocationClassifier
-from besfundlens.classification.stability import compute_stability
+from turkeyfundlens.classification.model import AllocationClassifier
+from turkeyfundlens.classification.stability import compute_stability
 
 # Column order of the classification result, most important first.
 RESULT_COLUMNS = [

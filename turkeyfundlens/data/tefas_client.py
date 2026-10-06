@@ -7,7 +7,7 @@ from typing import Optional, Iterator
 import pandas as pd
 import requests
 
-from besfundlens.config import URL_GENEL, URL_DAGILIM, DEFAULT_FON_TIPI
+from turkeyfundlens.config import URL_GENEL, URL_DAGILIM, DEFAULT_FON_TIPI
 
 
 @dataclass(frozen=True)

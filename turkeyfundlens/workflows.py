@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, Sequence, Union
 
-from besfundlens.core.engine import (
+from turkeyfundlens.core.engine import (
     DEFAULT_LANGUAGE,
     initialize_engine,
     run_allocation_classification,
@@ -11,9 +11,9 @@ from besfundlens.core.engine import (
     selected_funds_report_to_markdown,
     slice_date_window,
 )
-from besfundlens.classification.report import classification_report_to_markdown
-from besfundlens.data.loaders import load_data
-from besfundlens.storage.sqlite_store import update_sqlite_cache
+from turkeyfundlens.classification.report import classification_report_to_markdown
+from turkeyfundlens.data.loaders import load_data
+from turkeyfundlens.storage.sqlite_store import update_sqlite_cache
 
 
 def run_universe_analysis_from_sqlite(
@@ -35,9 +35,9 @@ def run_universe_analysis_from_sqlite(
     Analyse a SQLite cache, over the latest ``lookback`` or between two dates.
 
     ``start_date`` / ``end_date`` take precedence over ``lookback``; see
-    :func:`besfundlens.core.engine.slice_date_window`. ``include_unpublished``
+    :func:`turkeyfundlens.core.engine.slice_date_window`. ``include_unpublished``
     keeps rows TEFAS lists without a valuation instead of dropping them; see
-    :func:`besfundlens.core.engine.initialize_engine`.
+    :func:`turkeyfundlens.core.engine.initialize_engine`.
     """
     df_general, df_allocation = load_data(source="sqlite", db_path=db_path)
     if start_date is not None or end_date is not None:

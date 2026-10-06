@@ -4,7 +4,7 @@ from pathlib import Path
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 DEFAULT_DATA_DIR = Path("data")
-DEFAULT_DB_PATH = DEFAULT_DATA_DIR / "besfundlens.sqlite"
+DEFAULT_DB_PATH = DEFAULT_DATA_DIR / "turkeyfundlens.sqlite"
 
 URL_GENEL = "https://fonturkey.com.tr/api/funds/fonGnlBlgSiraliGetirDosya"
 URL_DAGILIM = "https://fonturkey.com.tr/api/funds/dagilimSiraliGetirDosya"
@@ -24,5 +24,5 @@ DEFAULT_LANGUAGE = "en"
 # shared file would let fetching one universe silently wipe out the other.
 DEFAULT_DB_PATHS = {
     FUND_TYPE_PENSION: DEFAULT_DB_PATH,
-    FUND_TYPE_SECURITIES: DEFAULT_DATA_DIR / "besfundlens_yat.sqlite",
+    FUND_TYPE_SECURITIES: DEFAULT_DATA_DIR / "turkeyfundlens_yat.sqlite",
 }

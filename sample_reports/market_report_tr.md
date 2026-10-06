@@ -1,4 +1,4 @@
-# besFundLens Piyasa Anlatı Raporu
+# turkeyFundLens Piyasa Anlatı Raporu
 
 ## Yönetici Özeti
 

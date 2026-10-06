@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from besfundlens.workflows import run_universe_analysis_from_sqlite
-from besfundlens.core.engine import save_markdown_report
+from turkeyfundlens.workflows import run_universe_analysis_from_sqlite
+from turkeyfundlens.core.engine import save_markdown_report
 
-DB_PATH = "data/besfundlens.sqlite"
+DB_PATH = "data/turkeyfundlens.sqlite"
 
 result_en = run_universe_analysis_from_sqlite(DB_PATH, lookback="1m", language="en", top_n=10)
 result_tr = run_universe_analysis_from_sqlite(DB_PATH, lookback="1m", language="tr", top_n=10)

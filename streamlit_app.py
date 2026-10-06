@@ -25,6 +25,14 @@ from besfundlens.core.engine import (
     slice_date_window,
     unpublished_funds,
 )
+from besfundlens.core.stress import (
+    EVENT_MANUAL,
+    FREEZE_MIN_DAYS,
+    HEAVY_OUTFLOW,
+    PRICE_DROP,
+    TURN_THRESHOLD,
+    stress_signals,
+)
 from besfundlens.data.calendar_quality import check_missing_business_days
 from besfundlens.data.loaders import load_data
 from besfundlens.data.tefas_client import FetchConfig
@@ -48,10 +56,30 @@ COVERAGE_SLACK_DAYS = 4
 # window: drop those days, or take the zeros as published.
 UNPUBLISHED_MODES = ["exclude", "include"]
 
+# Calendar days fetched before the start date. They are only read as the
+# baseline the stress score and the freeze test compare against, so a window
+# that opens on the day of a shock can still tell it from an ordinary day.
+STRESS_BASELINE_DAYS = 31
+
+# The stress signals a fund carries into the funds table
+STRESS_COLUMNS = [
+    "fonKodu",
+    "founder",
+    "frozen",
+    "frozen_since",
+    "frozen_until",
+    "frozen_days",
+    "frozen_ongoing",
+    "flow_before",
+    "flow_after",
+    "turned",
+]
+
 # Columns worth showing by default, in the order they read best
 FUND_COLUMNS = [
     "fonKodu",
     "fonUnvan",
+    "founder",
     "archetype",
     "end_aum",
     "cumulative_return",
@@ -62,6 +90,9 @@ FUND_COLUMNS = [
     "end_participants",
     "market_flow_quadrant",
     "flow_regime",
+    "flow_before",
+    "flow_after",
+    "frozen_since",
 ]
 
 PERCENT_COLUMNS = [
@@ -136,7 +167,7 @@ def pack(result):
 @st.cache_resource(show_spinner=False, ttl=6 * 60 * 60)
 def fetch_live(fund_type, start, end):
     """
-    Fetch the window straight from TEFAS.
+    Fetch the window straight from TEFAS, and a month before it.
 
     There is no stored database behind this. The cost is one fetch per fund
     type and window per boot, which the six hour cache holds on to, and in
@@ -147,10 +178,13 @@ def fetch_live(fund_type, start, end):
     of unpublished days reruns the engine without fetching again. Held as a
     resource rather than copied out on every call, since a year of securities
     funds runs to hundreds of megabytes; the engine copies what it uses.
+
+    The month before the start is for the stress baseline only; the analysis
+    cuts the frames to the window itself.
     """
     df_general, df_allocation = load_data(
         source="api",
-        start_date=start,
+        start_date=pd.Timestamp(start) - pd.Timedelta(days=STRESS_BASELINE_DAYS),
         end_date=end,
         config=FetchConfig(fund_type=fund_type),
         verbose=False,
@@ -192,8 +226,9 @@ def analyse(live, fund_type, db_path, start, end, language, valid_only, include_
 
     # A day TEFAS never published is invisible in the result but leaves a hole
     # in a short window, so the gaps are counted here and reported on the page.
-    # Only for a live fetch, which covers exactly the window asked for.
-    missing = check_missing_business_days(df_general) if live else pd.DatetimeIndex([])
+    # Only for a live fetch, which covers every day of the window asked for.
+    window_general, _, _ = slice_date_window(df_general, df_allocation, start, end)
+    missing = check_missing_business_days(window_general) if live else pd.DatetimeIndex([])
 
     return (missing,) + pack(
         bfl.run_universe_analysis_from_dataframes(
@@ -208,6 +243,18 @@ def analyse(live, fund_type, db_path, start, end, language, valid_only, include_
             classify=live,
         )
     )
+
+
+@st.cache_data(show_spinner=False, ttl=6 * 60 * 60)
+def find_stress(live, fund_type, db_path, start, end, event_date):
+    """
+    The stress signals for the window; see besfundlens.core.stress.
+
+    With ``event_date`` None the event is detected from the data, so it moves
+    with the window and with every day the data adds.
+    """
+    df_general, _ = source_frames(live, fund_type, db_path, start, end)
+    return stress_signals(df_general, start, end, event_date=event_date)
 
 
 def localize(universe, market_report, language, fund_type):
@@ -433,6 +480,82 @@ def summary_table(df, label_column, heading):
     return df[present].sort_values("fund_count", ascending=False).rename(columns=columns)
 
 
+def event_rule(event):
+    """A dashed line on the event date, or nothing when there is none."""
+    return (
+        alt.Chart(pd.DataFrame({"tarih": [event]}))
+        .mark_rule(strokeDash=[4, 4], color="#d1495b")
+        .encode(x="tarih:T")
+    )
+
+
+def stress_chart(index, event):
+    """
+    The share of funds having a bad day, day by day.
+
+    The two shares the event is detected from, rather than the z-score itself:
+    "a quarter of all funds fell 3% in one day" says what happened, a score of
+    eight says only that it was unusual.
+    """
+    names = {
+        "price_drop_share": t("series_price_drop", pct=round(abs(PRICE_DROP) * 100)),
+        "outflow_share": t("series_outflow", pct=round(abs(HEAVY_OUTFLOW) * 100)),
+    }
+    data = (
+        index.reset_index()
+        .melt(id_vars="tarih", value_vars=list(names), var_name="series", value_name="share")
+        .assign(share=lambda d: d["share"] * 100, series=lambda d: d["series"].map(names))
+    )
+    lines = (
+        alt.Chart(data)
+        .mark_line(point=True)
+        .encode(
+            x=alt.X("tarih:T", title=None, axis=alt.Axis(format="%d.%m")),
+            y=alt.Y("share:Q", title=t("axis_fund_share")),
+            color=alt.Color("series:N", title=None, legend=alt.Legend(orient="top")),
+            tooltip=[
+                alt.Tooltip("tarih:T", title=" ", format="%d.%m.%Y"),
+                alt.Tooltip("series:N", title=" "),
+                alt.Tooltip("share:Q", title="%", format=".1f"),
+            ],
+        )
+    )
+    chart = lines + event_rule(event) if event is not None else lines
+    return chart.properties(height=280)
+
+
+def daily_flow_chart(daily, event):
+    """
+    One fund's investor flow, day by day.
+
+    What the window total cannot show: a fund that doubled on inflows and then
+    lost a third in a day can sum to a healthy inflow.
+    """
+    data = daily.assign(
+        flow_display=daily["flow_pct"] * 100,
+        sign=daily["flow_pct"].map(lambda v: "+" if v >= 0 else "-"),
+    ).dropna(subset=["flow_display"])
+    bars = (
+        alt.Chart(data)
+        .mark_bar()
+        .encode(
+            x=alt.X("tarih:T", title=None, axis=alt.Axis(format="%d.%m")),
+            y=alt.Y("flow_display:Q", title=t("axis_daily_flow")),
+            color=alt.Color(
+                "sign:N",
+                scale=alt.Scale(domain=["+", "-"], range=["#2e9e83", "#d1495b"]),
+                legend=None,
+            ),
+            tooltip=[
+                alt.Tooltip("tarih:T", title=" ", format="%d.%m.%Y"),
+                alt.Tooltip("flow_display:Q", title="%", format=".2f"),
+            ],
+        )
+    )
+    chart = bars + event_rule(event) if event is not None else bars
+    return chart.properties(height=220)
+
+
 # ------------------------------------------------------------------ sidebar
 
 # Keyed by the TEFAS code rather than the translated label, so switching
@@ -477,6 +600,11 @@ end_date = st.sidebar.date_input(
     format="DD.MM.YYYY",
     key="end_date",
 )
+
+# The event date that splits each fund's flow into before and after. Drawn
+# once the data is in, since what it offers by default is the date detected in
+# it, but placed here, under the window it belongs to.
+event_box = st.sidebar.container()
 
 valid_only = st.sidebar.checkbox(
     t("valid_only"),
@@ -545,17 +673,17 @@ if unpublished:
     # Asked rather than decided. Dropping those days takes the funds out of the
     # totals; keeping them books a near-total loss; which is right depends on
     # what the reader is looking for.
-    # The answer is also kept under a key of its own. Streamlit drops a
-    # widget's state on any run that does not draw it — a BES window has no
-    # such funds — and it treats a widget whose labels changed as a new one,
-    # so both a window without such funds and a change of language would
-    # otherwise bring the question back. The widget is keyed per language and
-    # seeded from the stored answer whenever it starts fresh. Its default stays
-    # fixed: deriving it from the stored answer made it a new widget each time,
-    # which lost the next click.
-    widget_key = f"unpublished_choice_{language}"
-    if widget_key not in st.session_state and "unpublished_mode" in st.session_state:
-        st.session_state[widget_key] = st.session_state["unpublished_mode"]
+    # Once given, the answer is kept outside the widget and the widget set from
+    # it on every run, the same way as the view selector below and for the
+    # same reasons: the widget is not drawn for a window without such funds,
+    # and comes back as a new one after a change of language.
+    answer_key = f"unpublished_choice_{language}"
+
+    def remember_answer():
+        st.session_state["unpublished_mode"] = st.session_state[answer_key]
+
+    if "unpublished_mode" in st.session_state:
+        st.session_state[answer_key] = st.session_state["unpublished_mode"]
 
     choice = st.radio(
         t("unpublished_choice"),
@@ -564,13 +692,13 @@ if unpublished:
         format_func=lambda mode: t(f"unpublished_{mode}"),
         horizontal=True,
         help=t("unpublished_help"),
-        key=widget_key,
+        key=answer_key,
+        on_change=remember_answer,
     )
     if choice is None:
         st.caption(t("unpublished_ask"))
         st.stop()
 
-    st.session_state["unpublished_mode"] = choice
     include_unpublished = choice == "include"
 
 with st.spinner(spinner_text):
@@ -587,6 +715,51 @@ with st.spinner(spinner_text):
 missing_days, universe, market_report, markdown, intervals = analysis
 universe, market_report = localize(universe, market_report, language, fund_type)
 summary = market_report["universe_summary"]
+
+# ------------------------------------------------------------------ stress
+
+# Detected from the data on every run, not fixed to any one crisis: the day
+# prices fell across an unusual share of the universe and, for a run,
+# investors left in the days after. The reader can override it.
+with st.spinner(spinner_text):
+    detected = find_stress(live, fund_type, db_path, start_date, end_date, None)
+
+auto_event = detected["event_date"]
+manual_event = None
+
+with event_box:
+    event_help = t(
+        "event_help",
+        drop=round(abs(PRICE_DROP) * 100),
+        out=round(abs(HEAVY_OUTFLOW) * 100),
+    )
+    if st.checkbox(t("event_manual"), key="event_manual", help=event_help):
+        middle = pd.Timestamp(start_date) + (pd.Timestamp(end_date) - pd.Timestamp(start_date)) / 2
+        manual_event = st.date_input(
+            t("event_pick"),
+            value=(auto_event if auto_event is not None else middle).date(),
+            max_value=today,
+            format="DD.MM.YYYY",
+            key="event_date",
+        )
+        if not start_date < manual_event <= end_date:
+            st.warning(t("event_outside"))
+            manual_event = None
+    elif auto_event is not None:
+        st.caption(t(f"event_detected_{detected['event_kind']}", date=format_date(auto_event)))
+    else:
+        st.caption(t("event_none"))
+
+if manual_event is None:
+    stress = detected
+else:
+    with st.spinner(spinner_text):
+        stress = find_stress(live, fund_type, db_path, start_date, end_date, manual_event)
+
+universe = universe.merge(stress["funds"][STRESS_COLUMNS], on="fonKodu", how="left")
+# A left join leaves NaN, which is truthy, wherever a flag had no row to come from
+for flag in ("frozen", "frozen_ongoing", "turned"):
+    universe[flag] = universe[flag].eq(True)
 
 # ------------------------------------------------------------------ header
 
@@ -644,22 +817,34 @@ kpi[4].metric(
 # every run when nobody is looking at it.
 # Selected by a stable key rather than by its translated label, so switching
 # language keeps you on the view you were reading.
-# The chosen view is remembered outside the widget. Keying the widget itself
-# was not enough: changing language re-renders it and it comes back with
-# nothing selected, which used to drop you back on the market map.
-VIEWS = ["market", "funds", "detail", "report"]
-remembered = st.session_state.get("last_view", "market")
+# The chosen view is remembered outside the widget, and the widget is set from
+# it on every run. Lighter-handed versions each lost something: a keyed widget
+# came back empty after a language change; passing the remembered view as its
+# default made a new widget on every switch, so the next click, landing on the
+# old one, was lost; and seeding it only when it looked empty left it blank on
+# screen after a run that stopped before drawing it, while the server still
+# held a value. A click is recorded by the callback before the run starts, so
+# setting the widget from the record never overrides one.
+VIEWS = ["market", "funds", "stress", "detail", "report"]
+view_key = f"view_control_{language}"
 
-selected = st.segmented_control(
+
+def remember_view():
+    # A click on the selected view clears it; that is not a choice of view
+    if st.session_state.get(view_key) is not None:
+        st.session_state["last_view"] = st.session_state[view_key]
+
+
+st.session_state[view_key] = st.session_state.get("last_view", "market")
+
+view = st.segmented_control(
     "View",
     VIEWS,
-    default=remembered,
     format_func=lambda name: t(f"view_{name}"),
     label_visibility="collapsed",
+    key=view_key,
+    on_change=remember_view,
 )
-
-view = selected or remembered
-st.session_state["last_view"] = view
 
 # ------------------------------------------------------------------ market
 
@@ -740,6 +925,10 @@ if view == "funds":
             "market_effect_pct": st.column_config.NumberColumn(t("col_market_effect"), format="percent"),
             "flow_pct": st.column_config.NumberColumn(t("col_flow"), format="percent"),
             "participant_change_pct": st.column_config.NumberColumn(t("col_participant_change"), format="percent"),
+            "founder": st.column_config.TextColumn(t("col_founder")),
+            "flow_before": st.column_config.NumberColumn(t("col_flow_before"), format="percent"),
+            "flow_after": st.column_config.NumberColumn(t("col_flow_after"), format="percent"),
+            "frozen_since": st.column_config.DateColumn(t("col_frozen_since"), format="DD.MM.YYYY"),
         },
     )
 
@@ -749,6 +938,105 @@ if view == "funds":
         file_name=f"besfundlens_{fund_type}_{start_date}_{end_date}_{language}.csv",
         mime="text/csv",
     )
+
+# ------------------------------------------------------------------ stress
+
+if view == "stress":
+    event = stress["event_date"]
+    kind = stress["event_kind"]
+    stressed = stress["funds"]
+
+    if event is None:
+        st.info(t("event_none"))
+    else:
+        heading = "stress_title_manual" if kind == EVENT_MANUAL else f"event_detected_{kind}"
+        st.subheader(t(heading, date=format_date(event)))
+        if event <= first_day:
+            st.caption(t("event_at_start"))
+
+    st.altair_chart(stress_chart(stress["index"], event))
+    st.caption(t("stress_chart_caption"))
+
+    frozen = stressed[stressed["frozen"]]
+    turned = stressed[stressed["turned"]]
+    without_valuation = stressed[stressed["unpublished"]]
+
+    kpi_row = st.columns(4)
+    kpi_row[0].metric(t("kpi_frozen"), f"{len(frozen):,}")
+    kpi_row[1].metric(t("kpi_frozen_aum"), money(frozen["start_aum"].sum()))
+    kpi_row[2].metric(t("kpi_turned"), f"{len(turned):,}")
+    kpi_row[3].metric(t("kpi_unpublished"), f"{len(without_valuation):,}")
+
+    st.subheader(t("founders_title"))
+    founders = stress["founders"]
+    founders = founders[founders[["frozen", "unpublished", "turned"]].sum(axis=1) > 0]
+    if founders.empty:
+        st.caption(t("founders_none"))
+    else:
+        st.dataframe(
+            founders,
+            hide_index=True,
+            column_order=[
+                "founder", "funds", "start_aum", "stressed_aum", "stressed_aum_share",
+                "frozen", "unpublished", "turned", "flow_after",
+            ],
+            column_config={
+                "founder": st.column_config.TextColumn(t("col_founder"), width="medium"),
+                "funds": st.column_config.NumberColumn(t("col_funds")),
+                "start_aum": st.column_config.NumberColumn(t("col_aum"), format="compact"),
+                "stressed_aum": st.column_config.NumberColumn(t("col_stressed_aum"), format="compact"),
+                "stressed_aum_share": st.column_config.NumberColumn(t("col_stressed_share"), format="percent"),
+                "frozen": st.column_config.NumberColumn(t("col_frozen")),
+                "unpublished": st.column_config.NumberColumn(t("col_unpublished")),
+                "turned": st.column_config.NumberColumn(t("col_turned")),
+                "flow_after": st.column_config.NumberColumn(t("col_flow_after"), format="percent"),
+            },
+        )
+        st.caption(t("founders_caption"))
+
+    st.subheader(t("frozen_title"))
+    if frozen.empty:
+        st.caption(t("frozen_none"))
+    else:
+        st.dataframe(
+            frozen.sort_values("start_aum", ascending=False),
+            hide_index=True,
+            column_order=[
+                "fonKodu", "fonUnvan", "founder", "frozen_since",
+                "frozen_days", "frozen_ongoing", "start_aum",
+            ],
+            column_config={
+                "fonKodu": st.column_config.TextColumn(t("col_code"), width="small"),
+                "fonUnvan": st.column_config.TextColumn(label("fund"), width="large"),
+                "founder": st.column_config.TextColumn(t("col_founder")),
+                "frozen_since": st.column_config.DateColumn(t("col_frozen_since"), format="DD.MM.YYYY"),
+                "frozen_days": st.column_config.NumberColumn(t("col_frozen_days")),
+                "frozen_ongoing": st.column_config.CheckboxColumn(t("col_ongoing")),
+                "start_aum": st.column_config.NumberColumn(t("col_aum"), format="compact"),
+            },
+        )
+    st.caption(t("frozen_caption", days=FREEZE_MIN_DAYS))
+
+    st.subheader(t("turned_title"))
+    if event is None or event <= first_day:
+        st.caption(t("turned_no_event"))
+    elif turned.empty:
+        st.caption(t("turned_none"))
+    else:
+        st.dataframe(
+            turned.sort_values("start_aum", ascending=False),
+            hide_index=True,
+            column_order=["fonKodu", "fonUnvan", "founder", "flow_before", "flow_after", "start_aum"],
+            column_config={
+                "fonKodu": st.column_config.TextColumn(t("col_code"), width="small"),
+                "fonUnvan": st.column_config.TextColumn(label("fund"), width="large"),
+                "founder": st.column_config.TextColumn(t("col_founder")),
+                "flow_before": st.column_config.NumberColumn(t("col_flow_before"), format="percent"),
+                "flow_after": st.column_config.NumberColumn(t("col_flow_after"), format="percent"),
+                "start_aum": st.column_config.NumberColumn(t("col_aum"), format="compact"),
+            },
+        )
+    st.caption(t("turned_caption", pct=round(TURN_THRESHOLD * 100)))
 
 # ------------------------------------------------------------------ fund detail
 
@@ -765,6 +1053,19 @@ if view == "detail":
 
     st.subheader(fund["fonUnvan"])
     st.caption(f"{fund['archetype']} · {fund['market_flow_quadrant']} · {fund['flow_regime']}")
+
+    # The window's totals cannot show a fund that has stopped dealing: its flow
+    # is zero, so it reads as calm. Said first, before any of the numbers.
+    if fund["frozen"]:
+        state = "detail_frozen_ongoing" if fund["frozen_ongoing"] else "detail_frozen_past"
+        st.warning(
+            t(
+                state,
+                since=format_date(fund["frozen_since"]),
+                until=format_date(fund["frozen_until"]),
+                n=int(fund["frozen_days"]),
+            )
+        )
 
     top = st.columns(5)
     top[0].metric(t("detail_start_aum"), money(fund["start_aum"]))
@@ -812,6 +1113,15 @@ if view == "detail":
         )
         st.dataframe(dna, hide_index=True)
         st.caption(t("detail_lookthrough_help"))
+
+    st.markdown(f"**{t('detail_daily')}**")
+    daily = stress["daily"]
+    st.altair_chart(daily_flow_chart(daily[daily["fonKodu"] == code], stress["event_date"]))
+    if pd.notna(fund["flow_before"]) or pd.notna(fund["flow_after"]):
+        around = st.columns(3)
+        around[0].metric(t("col_flow_before"), percent(fund["flow_before"]))
+        around[1].metric(t("col_flow_after"), percent(fund["flow_after"]))
+    st.caption(t("detail_daily_caption"))
 
     st.markdown(f"**{t('detail_position')}**")
     st.altair_chart(universe_with_highlight(universe, code))

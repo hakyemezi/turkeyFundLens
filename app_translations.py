@@ -166,6 +166,83 @@ UI = {
         "bar_market_effect": "Market effect",
         "bar_flow": "Investor flow",
         "download_report": "Download the report as Markdown",
+
+        # stress signals
+        "view_stress": "Stress signals",
+        "event_manual": "Set the event date by hand",
+        "event_help": "The event date splits each fund's flow into before and after. Left "
+                      "alone it is detected from the data on every run, so it follows the "
+                      "window rather than any one crisis: the day an unusual share of funds "
+                      "fell at least {drop}% and, for a run, an unusual share then lost at "
+                      "least {out}% of their money within two days.",
+        "event_pick": "Event date",
+        "event_outside": "The event date has to fall after the start date and no later than "
+                         "the end date. Using the detected one.",
+        "event_detected_run": "Event: {date}, detected — a run: prices fell across the "
+                              "universe and investors left after",
+        "event_detected_shock": "Event: {date}, detected — a market shock: prices fell across "
+                                "the universe, but no wave of outflows followed",
+        "event_none": "No stress event stands out in this window. Set a date by hand to "
+                      "split the flows anyway.",
+        "stress_title_manual": "Event: {date}, set by hand",
+        "event_at_start": "The event falls on the window's first day, so there is no before "
+                          "to compare with. Start the window earlier to see it.",
+        "stress_chart_caption": "The share of funds having a bad day. The event is the day "
+                                "both lines break away from the weeks before; the price line "
+                                "alone makes a market shock. The dashed line marks the event.",
+        "series_price_drop": "Price down {pct}% or more",
+        "series_outflow": "Outflow of {pct}% or more",
+        "axis_fund_share": "Share of funds (%)",
+        "kpi_frozen": "Funds that stopped dealing",
+        "kpi_frozen_aum": "Their AUM at the start",
+        "kpi_turned": "Turned inflow to outflow",
+        "kpi_unpublished": "Without a valuation",
+        "founders_title": "By founder",
+        "founders_none": "No founder shows any of these signals in this window.",
+        "founders_caption": "Stressed AUM is what the founder held at the start of the "
+                            "window in funds that stopped dealing or went without a "
+                            "valuation. Ordered by that amount, since a share would put a "
+                            "one-fund founder on top for one bad fund. Only founders with a "
+                            "signal are listed.",
+        "col_founder": "Founder",
+        "col_funds": "Funds",
+        "col_stressed_aum": "Stressed AUM",
+        "col_stressed_share": "Stressed share",
+        "col_frozen": "Stopped",
+        "col_unpublished": "No valuation",
+        "col_turned": "Turned",
+        "col_flow_before": "Flow before event %",
+        "col_flow_after": "Flow after event %",
+        "col_frozen_since": "Stopped dealing since",
+        "col_frozen_days": "Days stopped",
+        "col_ongoing": "Still stopped",
+        "frozen_title": "Funds that stopped dealing",
+        "frozen_none": "No fund stopped dealing in this window.",
+        "frozen_caption": "Units in circulation and the number of holders did not move for "
+                          "at least {days} published days running while the price kept "
+                          "moving, in a fund that dealt on most days before. That is what a "
+                          "fund closed to subscriptions and redemptions looks like in the "
+                          "data; why it closed has to be checked with KAP.",
+        "turned_title": "Funds that turned from inflow to outflow",
+        "turned_no_event": "There is no before to compare with: no event in this window, or "
+                           "it falls on the first day.",
+        "turned_none": "No fund turned from inflow to outflow across the event.",
+        "turned_caption": "At least {pct}% in before the event and at least {pct}% out after "
+                          "it, each as a share of what the fund held at the time. The event "
+                          "day counts as after.",
+        "detail_frozen_ongoing": "Units in circulation and the number of holders have not "
+                                 "moved since {since} ({n} published days), while the price "
+                                 "has. The fund looks closed to dealing; its flow reads as "
+                                 "zero because nothing can move, not because nothing is wrong.",
+        "detail_frozen_past": "Units in circulation and the number of holders did not move "
+                              "from {since} to {until} ({n} published days), while the price "
+                              "did. The fund looks to have been closed to dealing in that time.",
+        "detail_daily": "Day by day",
+        "detail_daily_caption": "Each bar is one day's estimated investor flow, as a share of "
+                                "the AUM the day before. The window's total can hide a run: a "
+                                "fund that doubled on inflows and then lost a third in a day "
+                                "still sums to an inflow. The dashed line marks the event.",
+        "axis_daily_flow": "Daily flow (%)",
     },
 
     "tr": {
@@ -307,6 +384,83 @@ UI = {
         "bar_market_effect": "Piyasa etkisi",
         "bar_flow": "Yatırımcı akışı",
         "download_report": "Raporu Markdown olarak indir",
+
+        # stres sinyalleri
+        "view_stress": "Stres sinyalleri",
+        "event_manual": "Olay tarihini elle seç",
+        "event_help": "Olay tarihi her fonun akışını öncesi ve sonrası diye ikiye böler. Elle "
+                      "seçilmezse her çalıştırmada veriden tespit edilir; yani belli bir "
+                      "krize değil, seçilen aralığa göre belirlenir: fonların olağandışı bir "
+                      "kısmının aynı gün en az %{drop} değer kaybettiği ve, fon krizi için, "
+                      "ardından iki gün içinde olağandışı bir kısmının en az %{out} çıkış "
+                      "yaşadığı gün.",
+        "event_pick": "Olay tarihi",
+        "event_outside": "Olay tarihi başlangıç tarihinden sonra olmalı ve bitiş tarihini "
+                         "geçmemeli. Tespit edilen tarih kullanılıyor.",
+        "event_detected_run": "Olay: {date}, otomatik tespit — fon krizi: fiyatlar evren "
+                              "genelinde düştü, ardından yatırımcılar çıktı",
+        "event_detected_shock": "Olay: {date}, otomatik tespit — piyasa şoku: fiyatlar evren "
+                                "genelinde düştü, ama çıkış dalgası gelmedi",
+        "event_none": "Bu aralıkta öne çıkan bir stres olayı yok. Akışları yine de bölmek "
+                      "için tarihi elle seçin.",
+        "stress_title_manual": "Olay: {date}, elle seçildi",
+        "event_at_start": "Olay aralığın ilk gününe denk geliyor, bu yüzden karşılaştırılacak "
+                          "bir öncesi yok. Görmek için aralığı daha erken başlatın.",
+        "stress_chart_caption": "Kötü gün yaşayan fonların oranı. Olay, iki çizginin de önceki "
+                                "haftalardan koptuğu gündür; yalnızca fiyat çizgisinin kopması "
+                                "piyasa şoku sayılır. Kesikli çizgi olay tarihini gösterir.",
+        "series_price_drop": "Fiyatı en az %{pct} düşen",
+        "series_outflow": "En az %{pct} çıkış yaşayan",
+        "axis_fund_share": "Fon oranı (%)",
+        "kpi_frozen": "Alım-satımı duran fon",
+        "kpi_frozen_aum": "Başlangıçtaki AUM'ları",
+        "kpi_turned": "Girişten çıkışa dönen",
+        "kpi_unpublished": "Değerlemesiz",
+        "founders_title": "Kurucuya göre",
+        "founders_none": "Bu aralıkta hiçbir kurucuda bu sinyaller görülmüyor.",
+        "founders_caption": "Stresli AUM, kurucunun aralık başında alım-satımı duran ya da "
+                            "değerleme yayımlamayan fonlarda tuttuğu tutardır. Tutara göre "
+                            "sıralanır; orana göre sıralamak tek fonlu bir kurucuyu tek kötü "
+                            "fon yüzünden en üste çıkarırdı. Yalnızca sinyali olan kurucular "
+                            "listelenir.",
+        "col_founder": "Kurucu",
+        "col_funds": "Fon",
+        "col_stressed_aum": "Stresli AUM",
+        "col_stressed_share": "Stresli pay",
+        "col_frozen": "Duran",
+        "col_unpublished": "Değerlemesiz",
+        "col_turned": "Dönen",
+        "col_flow_before": "Olay öncesi akış %",
+        "col_flow_after": "Olay sonrası akış %",
+        "col_frozen_since": "Alım-satım duruşu",
+        "col_frozen_days": "Duruş (gün)",
+        "col_ongoing": "Sürüyor",
+        "frozen_title": "Alım-satımı duran fonlar",
+        "frozen_none": "Bu aralıkta alım-satımı duran fon yok.",
+        "frozen_caption": "Dolaşımdaki pay ve kişi sayısı en az {days} yayın günü üst üste "
+                          "hiç değişmemiş, fiyat ise değişmeye devam etmiş; fon da öncesinde "
+                          "günlerin çoğunda işlem görüyormuş. Alım-satıma kapanmış bir fon "
+                          "veride böyle görünür; neden kapandığı KAP'tan doğrulanmalı.",
+        "turned_title": "Girişten çıkışa dönen fonlar",
+        "turned_no_event": "Karşılaştırılacak bir öncesi yok: bu aralıkta olay tespit "
+                           "edilmedi ya da olay ilk güne denk geliyor.",
+        "turned_none": "Olay çevresinde girişten çıkışa dönen fon yok.",
+        "turned_caption": "Olaydan önce en az %{pct} giriş, sonra en az %{pct} çıkış; ikisi "
+                          "de fonun o andaki büyüklüğüne oranla. Olay günü sonrasına sayılır.",
+        "detail_frozen_ongoing": "Dolaşımdaki pay ve kişi sayısı {since} tarihinden beri ({n} "
+                                 "yayın günü) değişmiyor, fiyat ise değişiyor. Fon alım-satıma "
+                                 "kapanmış görünüyor; akışın sıfır çıkması bir sorun olmadığı "
+                                 "için değil, hiçbir şey hareket edemediği için.",
+        "detail_frozen_past": "Dolaşımdaki pay ve kişi sayısı {since} – {until} arasında ({n} "
+                              "yayın günü) değişmedi, fiyat ise değişti. Fon o süre boyunca "
+                              "alım-satıma kapanmış görünüyor.",
+        "detail_daily": "Gün gün",
+        "detail_daily_caption": "Her çubuk bir günün tahmini yatırımcı akışıdır; bir önceki "
+                                "günün AUM'una oranla. Dönem toplamı bir kaçışı gizleyebilir: "
+                                "girişlerle iki katına çıkıp bir günde üçte birini kaybeden fon "
+                                "toplamda yine giriş gösterir. Kesikli çizgi olay tarihini "
+                                "gösterir.",
+        "axis_daily_flow": "Günlük akış (%)",
     },
 }
 

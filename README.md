@@ -233,7 +233,26 @@ investor flow — the funds that grew on inflows while the market fell sit in
 their own corner — plus the quadrant and archetype summaries, a filterable fund
 table with CSV export, and the Markdown report.
 
-A fund detail view narrows the same question to one fund: what its AUM change was made of, its portfolio DNA, and where it sits against the rest of the universe.
+A fund detail view narrows the same question to one fund: what its AUM change was made of, its portfolio DNA, its flow day by day, and where it sits against the rest of the universe.
+
+A stress view reads the path between the window's endpoints, which the totals
+cannot show: a fund that doubled on inflows, lost a third in a day and then
+stopped dealing can sum to a healthy inflow, and a fund that has stopped
+dealing has no flow at all. `besfundlens.core.stress` finds:
+
+- **the event date**, detected from the data on every run rather than fixed: the
+  day prices fell across an unusual share of funds, told apart as a *run* when
+  heavy outflows followed within two days, or a *market shock* when they did
+  not (BES, whose outflows are restricted, shows shocks). The reader can set it
+  by hand instead;
+- **flows before and after it** for every fund, and the funds that turned from
+  heavy inflow to heavy outflow across it;
+- **funds that stopped dealing**: units and holders unchanged for five published
+  days running while the price kept moving, in a fund that dealt daily before;
+- **the same by founder**, since stress tends to sit with a few fund companies.
+
+The live fetch reaches a month before the start date for the baseline these are
+measured against; the analysis itself still covers only the window.
 
 For anything longer than a year, run it locally and point it at a SQLite cache
 built with `scripts/fetch_history.py`. The sidebar switches between the two.

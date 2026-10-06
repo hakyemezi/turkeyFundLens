@@ -10,6 +10,7 @@ it.
 Run with:  streamlit run streamlit_app.py
 """
 
+from datetime import date
 from pathlib import Path
 
 import altair as alt
@@ -17,29 +18,35 @@ import pandas as pd
 import streamlit as st
 
 import besfundlens as bfl
-from besfundlens.core.engine import report_label
+from besfundlens.config import DEFAULT_DB_PATHS, FUND_TYPE_SECURITIES, FUND_TYPES
+from besfundlens.core.engine import (
+    UNIVERSE_MIN_START_AUM,
+    report_label,
+    slice_date_window,
+    unpublished_funds,
+)
 from besfundlens.data.calendar_quality import check_missing_business_days
 from besfundlens.data.loaders import load_data
+from besfundlens.data.tefas_client import FetchConfig
 
-from app_translations import LANGUAGES, MONTHS, UI
+from app_translations import LANGUAGES, MONTHS, UI, UI_BY_FUND_TYPE
 
 st.set_page_config(page_title="besFundLens", page_icon="🔍", layout="wide")
 
-DEFAULT_DB = "data/besfundlens.sqlite"
+# TEFAS caps a request at about a month and answers with an empty result rather
+# than an error when asked for more, or when asked too quickly, so the client
+# fetches month by month and paces itself. A year is a dozen of those rounds,
+# which is as long as anyone should wait on a page; past that, a local cache.
+LIVE_MAX_DAYS = 366
 
-# The engine's own presets, ordered from short to long
-LOOKBACKS = ["1m", "3m", "6m", "1y"]
+# How far the analysed window may fall short of the dates asked for before the
+# page says so. A weekend plus a holiday either side is normal; beyond that the
+# data stops short, which on a cache usually means it needs updating.
+COVERAGE_SLACK_DAYS = 4
 
-# How much calendar history to pull for each lookback. A little more than the
-# window itself, because the engine counts trading days and needs the window
-# fully covered before it will call a record valid.
-FETCH_MONTHS = {"1m": 1, "3m": 3, "6m": 6, "1y": 12}
-
-# Measured against the live API: three months of EMK took 15 seconds over four
-# chunked requests. TEFAS caps a request at about a month and answers with an
-# empty result rather than an error when asked for more, or when asked too
-# quickly, so the client chunks and paces itself and the wait grows with range.
-FETCH_SECONDS = {"1m": 10, "3m": 15, "6m": 30, "1y": 60}
+# What to do with a fund TEFAS lists without a valuation on some day of the
+# window: drop those days, or take the zeros as published.
+UNPUBLISHED_MODES = ["exclude", "include"]
 
 # Columns worth showing by default, in the order they read best
 FUND_COLUMNS = [
@@ -85,8 +92,16 @@ language = st.sidebar.radio(
 
 
 def t(key, **kwargs):
-    """Interface string, falling back to English if a translation is missing."""
-    text = UI[language].get(key) or UI["en"][key]
+    """
+    Interface string, falling back to English if a translation is missing.
+
+    The universe is read from session state rather than passed in, the same way
+    the language selector reads its own: the fund type selector is drawn after
+    this is defined, and on the first run, before it is drawn, the default
+    pension wording is the right one.
+    """
+    overrides = UI_BY_FUND_TYPE.get(st.session_state.get("fund_type"), {}).get(language, {})
+    text = overrides.get(key) or UI[language].get(key) or UI["en"][key]
     return text.format(**kwargs) if kwargs else text
 
 
@@ -105,11 +120,6 @@ def format_date(timestamp):
     return f"{timestamp.day:02d} {MONTHS[language][timestamp.month - 1]} {timestamp.year}"
 
 
-def months_text(lookback):
-    count = FETCH_MONTHS[lookback]
-    return t("months_one") if count == 1 else t("months_many", n=count)
-
-
 # ------------------------------------------------------------------ analysis
 
 
@@ -123,55 +133,84 @@ def pack(result):
     )
 
 
-@st.cache_data(show_spinner=False, ttl=6 * 60 * 60)
-def analyse_live(lookback, language, valid_only):
+@st.cache_resource(show_spinner=False, ttl=6 * 60 * 60)
+def fetch_live(fund_type, start, end):
     """
-    Fetch the window straight from TEFAS, then analyse it.
+    Fetch the window straight from TEFAS.
 
-    There is no stored database behind this. The cost is one fetch per lookback
-    per boot, which the six hour cache holds on to, and in exchange whoever
-    opens the page gets the latest published day rather than whatever was in a
-    snapshot when it was built.
+    There is no stored database behind this. The cost is one fetch per fund
+    type and window per boot, which the six hour cache holds on to, and in
+    exchange whoever opens the page gets the latest published day rather than
+    whatever was in a snapshot when it was built.
+
+    Kept apart from the analysis, so that switching language or the treatment
+    of unpublished days reruns the engine without fetching again. Held as a
+    resource rather than copied out on every call, since a year of securities
+    funds runs to hundreds of megabytes; the engine copies what it uses.
     """
-    end = pd.Timestamp.today().normalize()
-    start = end - pd.DateOffset(months=FETCH_MONTHS[lookback]) - pd.Timedelta(days=10)
-
     df_general, df_allocation = load_data(
-        source="api", start_date=start, end_date=end, verbose=False
+        source="api",
+        start_date=start,
+        end_date=end,
+        config=FetchConfig(fund_type=fund_type),
+        verbose=False,
     )
     if df_general.empty or df_allocation.empty:
         return None
+    return df_general, df_allocation
 
-    # A day TEFAS never published is invisible in the result but shifts a short
-    # lookback, so the gaps are counted here and reported on the page.
-    missing = check_missing_business_days(df_general)
+
+@st.cache_resource(show_spinner=False)
+def load_cache(db_path):
+    """A local SQLite cache, which can hold far more history."""
+    return load_data(source="sqlite", db_path=db_path)
+
+
+def source_frames(live, fund_type, db_path, start, end):
+    return fetch_live(fund_type, start, end) if live else load_cache(db_path)
+
+
+@st.cache_data(show_spinner=False, ttl=6 * 60 * 60)
+def find_unpublished(live, fund_type, db_path, start, end):
+    """
+    Funds with a day in the window that TEFAS lists without a valuation.
+
+    Looked up before the analysis runs, because what to do with them is the
+    reader's call and the answer changes the analysis. Raises ValueError, as
+    the analysis would, when the window holds too little to measure.
+    """
+    frames = source_frames(live, fund_type, db_path, start, end)
+    if frames is None:
+        return None
+    df_general, _, _ = slice_date_window(*frames, start, end)
+    return unpublished_funds(df_general)
+
+
+@st.cache_data(show_spinner=False, ttl=6 * 60 * 60)
+def analyse(live, fund_type, db_path, start, end, language, valid_only, include_unpublished):
+    df_general, df_allocation = source_frames(live, fund_type, db_path, start, end)
+
+    # A day TEFAS never published is invisible in the result but leaves a hole
+    # in a short window, so the gaps are counted here and reported on the page.
+    # Only for a live fetch, which covers exactly the window asked for.
+    missing = check_missing_business_days(df_general) if live else pd.DatetimeIndex([])
 
     return (missing,) + pack(
         bfl.run_universe_analysis_from_dataframes(
             df_general,
             df_allocation,
-            lookback=lookback,
             valid_only=valid_only,
             language=language,
+            start_date=start,
+            end_date=end,
+            include_unpublished=include_unpublished,
+            # The cache path has never run the classifier; kept that way.
+            classify=live,
         )
     )
 
 
-@st.cache_data(show_spinner=False)
-def analyse_cache(db_path, lookback, language, valid_only):
-    """Analyse a local SQLite cache, which can hold far more history."""
-    return (pd.DatetimeIndex([]),) + pack(
-        bfl.run_universe_analysis_from_sqlite(
-            db_path=db_path,
-            lookback=lookback,
-            language=language,
-            valid_only=valid_only,
-            classify=False,
-        )
-    )
-
-
-def localize(universe, market_report, language):
+def localize(universe, market_report, language, fund_type):
     """
     Translate the labels the engine leaves in English.
 
@@ -179,8 +218,14 @@ def localize(universe, market_report, language):
     quadrant and regime arrive in English however the report was written. They
     are translated here rather than at read time so that the filters, the chart
     legend and the table all agree.
+
+    The engine words flow regimes for pension participants whatever it is
+    given, so for securities investment funds they are reworded for investors
+    here as well, in English too.
     """
-    if language == "en":
+    investors = fund_type == FUND_TYPE_SECURITIES
+
+    if language == "en" and not investors:
         return universe, market_report
 
     universe = universe.copy()
@@ -188,7 +233,7 @@ def localize(universe, market_report, language):
         lambda v: bfl.translate_archetype(v, language)
     )
     universe["flow_regime"] = universe["flow_regime"].map(
-        lambda v: bfl.translate_flow_regime(v, language)
+        lambda v: bfl.translate_flow_regime(v, language, investors=investors)
     )
     universe["market_flow_quadrant"] = universe["market_flow_quadrant"].map(
         lambda v: bfl.translate_quadrant_name(v, language)
@@ -390,6 +435,17 @@ def summary_table(df, label_column, heading):
 
 # ------------------------------------------------------------------ sidebar
 
+# Keyed by the TEFAS code rather than the translated label, so switching
+# language keeps the same universe selected.
+fund_type = st.sidebar.radio(
+    t("fund_type"),
+    FUND_TYPES,
+    format_func=lambda code: t(f"fund_type_short_{code}"),
+    key="fund_type",
+    horizontal=True,
+    help=t("fund_type_help"),
+)
+
 source = st.sidebar.radio(
     t("data"),
     [t("source_live"), t("source_cache")],
@@ -397,19 +453,35 @@ source = st.sidebar.radio(
 )
 live = source == t("source_live")
 
-db_path = DEFAULT_DB
+default_db = str(DEFAULT_DB_PATHS[fund_type])
+db_path = default_db
 if not live:
-    db_path = st.sidebar.text_input(t("cache_path"), value=DEFAULT_DB)
+    db_path = st.sidebar.text_input(t("cache_path"), value=default_db)
 
-lookback = st.sidebar.select_slider(t("lookback"), options=LOOKBACKS, value="1m")
-
-if live:
-    st.sidebar.caption(
-        t("fetch_estimate", months=months_text(lookback), seconds=FETCH_SECONDS[lookback])
-    )
+# A window between two dates rather than a lookback, so an event can be
+# measured from the day it happened: everything since a given Thursday, say,
+# rather than whichever twenty trading days happen to end today.
+today = date.today()
+start_date = st.sidebar.date_input(
+    t("start_date"),
+    value=(pd.Timestamp(today) - pd.DateOffset(months=1)).date(),
+    max_value=today,
+    format="DD.MM.YYYY",
+    help=t("start_help"),
+    key="start_date",
+)
+end_date = st.sidebar.date_input(
+    t("end_date"),
+    value=today,
+    max_value=today,
+    format="DD.MM.YYYY",
+    key="end_date",
+)
 
 valid_only = st.sidebar.checkbox(
-    t("valid_only"), value=True, help=t("valid_only_help")
+    t("valid_only"),
+    value=True,
+    help=t("valid_only_help", aum=money(UNIVERSE_MIN_START_AUM)),
 )
 
 st.sidebar.divider()
@@ -419,10 +491,19 @@ st.sidebar.markdown(
     "```bash\n"
     "python scripts/fetch_history.py \\\n"
     "  --start 2021-06-15 --end 2026-06-15 \\\n"
-    "  --db-path data/besfundlens.sqlite\n"
+    f"  --fund-type {fund_type} \\\n"
+    f"  --db-path {default_db}\n"
     "```\n\n"
     f"{t('deeper_turkeyfundsdata')}"
 )
+
+if start_date >= end_date:
+    st.warning(t("dates_order"))
+    st.stop()
+
+if live and (end_date - start_date).days > LIVE_MAX_DAYS:
+    st.warning(t("live_too_long"))
+    st.stop()
 
 if not live and not Path(db_path).exists():
     st.warning(t("no_cache", path=db_path, live=t("source_live")))
@@ -430,52 +511,119 @@ if not live and not Path(db_path).exists():
 
 # ------------------------------------------------------------------ run
 
-spinner_text = (
-    t("spinner_live", months=months_text(lookback), seconds=FETCH_SECONDS[lookback])
-    if live
-    else t("spinner_cache", lookback=lookback)
-)
+st.title(t("title"))
+
+# Filled once the analysis has run, but placed here so the dates and counts sit
+# under the title, above the question about funds without a valuation.
+header = st.container()
+
+requested = {"start": format_date(start_date), "end": format_date(end_date)}
+
+spinner_text = t("spinner_live", **requested) if live else t("spinner_cache", **requested)
 
 with st.spinner(spinner_text):
     try:
-        analysis = (
-            analyse_live(lookback, language, valid_only)
-            if live
-            else analyse_cache(db_path, lookback, language, valid_only)
-        )
+        unpublished = find_unpublished(live, fund_type, db_path, start_date, end_date)
     except ValueError:
-        # The engine raises when no fund covers the window, which for a cache
-        # holding a few months is what asking for a year looks like.
-        st.warning(t("too_short", lookback=lookback))
+        # Raised when the window holds fewer than two published days, which
+        # for a cache is what dates outside it look like.
+        st.warning(t("too_short", **requested))
         st.stop()
 
-if analysis is None:
+if unpublished is None:
     st.error(t("empty_response"))
     st.stop()
 
+include_unpublished = False
+
+if unpublished:
+    codes = ", ".join(unpublished[:8])
+    if len(unpublished) > 8:
+        codes += f" (+{len(unpublished) - 8})"
+    st.warning(t("unpublished", n=len(unpublished), codes=codes))
+
+    # Asked rather than decided. Dropping those days takes the funds out of the
+    # totals; keeping them books a near-total loss; which is right depends on
+    # what the reader is looking for.
+    # The answer is also kept under a key of its own. Streamlit drops a
+    # widget's state on any run that does not draw it — a BES window has no
+    # such funds — and it treats a widget whose labels changed as a new one,
+    # so both a window without such funds and a change of language would
+    # otherwise bring the question back. The widget is keyed per language and
+    # seeded from the stored answer whenever it starts fresh. Its default stays
+    # fixed: deriving it from the stored answer made it a new widget each time,
+    # which lost the next click.
+    widget_key = f"unpublished_choice_{language}"
+    if widget_key not in st.session_state and "unpublished_mode" in st.session_state:
+        st.session_state[widget_key] = st.session_state["unpublished_mode"]
+
+    choice = st.radio(
+        t("unpublished_choice"),
+        UNPUBLISHED_MODES,
+        index=None,
+        format_func=lambda mode: t(f"unpublished_{mode}"),
+        horizontal=True,
+        help=t("unpublished_help"),
+        key=widget_key,
+    )
+    if choice is None:
+        st.caption(t("unpublished_ask"))
+        st.stop()
+
+    st.session_state["unpublished_mode"] = choice
+    include_unpublished = choice == "include"
+
+with st.spinner(spinner_text):
+    try:
+        analysis = analyse(
+            live, fund_type, db_path, start_date, end_date,
+            language, valid_only, include_unpublished,
+        )
+    except ValueError:
+        # The engine raises when no fund covers the whole window.
+        st.warning(t("too_short", **requested))
+        st.stop()
+
 missing_days, universe, market_report, markdown, intervals = analysis
-universe, market_report = localize(universe, market_report, language)
+universe, market_report = localize(universe, market_report, language, fund_type)
 summary = market_report["universe_summary"]
 
 # ------------------------------------------------------------------ header
 
-last_date = format_date(universe["end_date"].max())
-first_date = format_date(universe["start_date"].max())
+first_day = universe["start_date"].max()
+last_day = universe["end_date"].max()
 fund_count = f"{int(summary['fund_count']):,}"
 
-st.title(t("title"))
-st.caption(
-    "**" + t("data_through", date=last_date) + "** "
-    + f"({t('via_live') if live else t('via_cache')}) · "
-    + t("funds_count", n=fund_count) + " · "
-    + t("window", lookback=lookback, intervals=intervals, date=first_date)
-)
+with header:
+    st.caption(
+        "**" + t("data_through", date=format_date(last_day)) + "** "
+        + f"({t('via_live') if live else t('via_cache')}) · "
+        + t(f"fund_type_{fund_type}") + " · "
+        + t("funds_count", n=fund_count) + " · "
+        + t("window", intervals=intervals, date=format_date(first_day))
+    )
 
-if len(missing_days):
-    days = ", ".join(format_date(d) for d in missing_days[:5])
-    if len(missing_days) > 5:
-        days += " …"
-    st.warning(t("missing_days", n=len(missing_days), days=days))
+    # The window runs from the first published day on or after the start date
+    # to the last on or before the end date. A weekend either side is expected;
+    # a cache that stops in August when October was asked for is worth saying.
+    if (
+        (first_day - pd.Timestamp(start_date)).days > COVERAGE_SLACK_DAYS
+        or (pd.Timestamp(end_date) - last_day).days > COVERAGE_SLACK_DAYS
+    ):
+        st.info(
+            t(
+                "partial_window",
+                first=format_date(first_day),
+                last=format_date(last_day),
+                **requested,
+            )
+        )
+
+    if len(missing_days):
+        days = ", ".join(format_date(d) for d in missing_days[:5])
+        if len(missing_days) > 5:
+            days += " …"
+        st.warning(t("missing_days", n=len(missing_days), days=days))
 
 kpi = st.columns(5)
 kpi[0].metric(t("kpi_end_aum"), money(summary["total_end_aum"]))
@@ -598,7 +746,7 @@ if view == "funds":
     st.download_button(
         t("download_csv"),
         view_df.to_csv(index=False).encode("utf-8-sig"),
-        file_name=f"besfundlens_{lookback}_{language}.csv",
+        file_name=f"besfundlens_{fund_type}_{start_date}_{end_date}_{language}.csv",
         mime="text/csv",
     )
 
@@ -676,7 +824,7 @@ if view == "report":
     st.download_button(
         t("download_report"),
         markdown.encode("utf-8"),
-        file_name=f"besfundlens_report_{language}_{lookback}.md",
+        file_name=f"besfundlens_report_{fund_type}_{start_date}_{end_date}_{language}.md",
         mime="text/markdown",
     )
     st.markdown(markdown)

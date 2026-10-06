@@ -4,7 +4,7 @@
 
 besFundLens decomposes pension fund AUM movements into **market effect** and **estimated investor flow**, maps portfolio DNA, classifies funds by their asset allocation, identifies market-flow regimes, and generates bilingual Markdown reports.
 
-> The project currently focuses on Turkish BES / pension fund data. It is designed as a reusable analytics engine rather than a price-prediction model.
+> The project covers the two TEFAS universes it was built for: BES / pension funds (`EMK`) and securities investment funds (`YAT`, Menkul Kıymet Yatırım Fonları). Each is analysed as its own universe. It is designed as a reusable analytics engine rather than a price-prediction model.
 
 ## Why this project exists
 
@@ -62,6 +62,11 @@ python scripts/fetch_history.py \
   --end 2026-06-15 \
   --db-path data/besfundlens.sqlite
 ```
+
+Add `--fund-type YAT` for securities investment funds. Without `--db-path` each
+fund type gets its own file (`data/besfundlens_yat.sqlite` for `YAT`), since the
+script replaces the tables it writes and a shared file would let one universe
+overwrite the other.
 
 Generate an English report:
 
@@ -190,6 +195,21 @@ Classification is merged into the market narrative report automatically. Pass
 
 The project uses **available observations / intervals**, not calendar days. This is important because fund data may skip weekends, public holidays, or missing publication dates.
 
+To measure between two dates instead — everything since a given event, say —
+pass `start_date` / `end_date` to `run_universe_analysis_from_sqlite` or
+`run_universe_analysis_from_dataframes`, or `--start` / `--end` to
+`scripts/generate_report.py`. The data is cut to the window first: the first
+published day on or after the start is the base, the last on or before the end
+is the end, and only funds that cover the whole window are counted.
+
+A day on which TEFAS lists a fund without a valuation — a zero price, or a
+matured fund left as a placeholder with no units in circulation — is by default
+treated as unpublished rather than as a near-total loss, so the fund drops out
+of a window it does not cover. Pass `include_unpublished=True` (or
+`--include-unpublished`) to take the zeros as published instead. These turn up
+in securities investment funds, not so far in BES data; the web page lists the
+funds affected and asks which way to go before it runs the analysis.
+
 ## Web interface
 
 ```bash
@@ -197,11 +217,14 @@ pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
 
-The page opens on **live data**: it fetches the lookback window straight from
+The page opens on **live data**: it fetches the chosen dates straight from
 TEFAS, so whoever opens it sees the latest published day rather than whatever
-was in a cache when it was built. Roughly 10 seconds for a one-month window and
-about a minute for a year, cached for six hours after that. The header always
-states the date the data runs through.
+was in a cache when it was built, and caches the result for six hours. The
+sidebar picks the universe (BES or YAT) and a start and end date, by default the
+last month up to today; live fetches are capped at a year. The header always
+states the date the data runs through. If any fund has a day without a
+valuation inside the window, the page names them and asks whether to exclude
+them or include them as zero before running the analysis.
 
 The interface itself is bilingual too: a selector in the sidebar switches the whole page, and the archetype, quadrant and flow regime labels in the table and chart are translated along with it, not just the report.
 

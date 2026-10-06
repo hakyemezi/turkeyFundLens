@@ -5,7 +5,7 @@ from typing import Optional, Union, Sequence
 import numpy as np
 import pandas as pd
 
-from besfundlens.core.utils import (  # noqa: F401  (re-exported for backward compatibility)
+from turkeyfundlens.core.utils import (  # noqa: F401  (re-exported for backward compatibility)
     DEFAULT_LANGUAGE,
     LOOKBACK_PRESETS,
     SUPPORTED_LANGUAGES,
@@ -21,7 +21,7 @@ from besfundlens.core.utils import (  # noqa: F401  (re-exported for backward co
     safe_divide,
     safe_divide_series,
 )
-from besfundlens.core.asset_metadata import (  # noqa: F401  (re-exported for backward compatibility)
+from turkeyfundlens.core.asset_metadata import (  # noqa: F401  (re-exported for backward compatibility)
     add_dna_columns,
     asset_group_map,
     asset_name_en,
@@ -34,11 +34,11 @@ from besfundlens.core.asset_metadata import (  # noqa: F401  (re-exported for ba
     market_scope_map,
     validate_asset_metadata,
 )
-from besfundlens.classification.config import (
+from turkeyfundlens.classification.config import (
     DEFAULT_CONFIG as DEFAULT_CLASSIFICATION_CONFIG,
 )
-from besfundlens.classification.pipeline import classify_universe
-from besfundlens.classification.report import (
+from turkeyfundlens.classification.pipeline import classify_universe
+from turkeyfundlens.classification.report import (
     build_classification_sections,
     classification_note_lines,
 )
@@ -58,10 +58,10 @@ BUILD_VERSION = "2026-08-10-repo-stable-v2-classification"
 # 2. Utility Functions
 # ============================================================
 #
-# The generic helpers below now live in `besfundlens.core.utils` and the asset
-# metadata / DNA aggregation layer lives in `besfundlens.core.asset_metadata`.
+# The generic helpers below now live in `turkeyfundlens.core.utils` and the asset
+# metadata / DNA aggregation layer lives in `turkeyfundlens.core.asset_metadata`.
 # They are re-exported here so that existing imports such as
-# `from besfundlens.core.engine import safe_divide` keep working.
+# `from turkeyfundlens.core.engine import safe_divide` keep working.
 
 
 def print_build_info():
@@ -69,7 +69,7 @@ def print_build_info():
     Çalışan dosyanın güncel sürümünü ve temel universe kalite eşiğini gösterir.
     Eski fonksiyonların cache'ten çalışıp çalışmadığını kontrol etmek için kullanılır.
     """
-    print(f"besFundLens build version: {BUILD_VERSION}")
+    print(f"turkeyFundLens build version: {BUILD_VERSION}")
     print(f"Universe min start AUM: {UNIVERSE_MIN_START_AUM:,.0f} TL")
 
 
@@ -221,8 +221,8 @@ def prepare_main_panel(
 
 
 # ============================================================
-# 4. Asset Metadata  -> besfundlens/core/asset_metadata.py
-# 5. DNA Feature Engineering -> besfundlens/core/asset_metadata.py
+# 4. Asset Metadata  -> turkeyfundlens/core/asset_metadata.py
+# 5. DNA Feature Engineering -> turkeyfundlens/core/asset_metadata.py
 # ============================================================
 
 
@@ -1204,7 +1204,7 @@ def fund_lens_snapshot(
     verbose: bool = True,
 ):
     """
-    besFundLens birleşik fon raporu:
+    turkeyFundLens birleşik fon raporu:
     DNA + Flow + yorum.
     """
     language = normalize_language(language)
@@ -1233,7 +1233,7 @@ def fund_lens_snapshot(
 
     if verbose:
         print("\n" + "=" * 80)
-        print(f"besFundLens Interpretation: {fund_code}")
+        print(f"turkeyFundLens Interpretation: {fund_code}")
         print("=" * 80)
 
         for comment in lens_comments:
@@ -2026,7 +2026,7 @@ def generate_market_narrative_report(
     verbose: bool = True,
 ) -> dict:
     """
-    besFundLens universe seviyesinde kısa piyasa anlatısı üretir.
+    turkeyFundLens universe seviyesinde kısa piyasa anlatısı üretir.
     """
     df = lens_universe_df.copy()
 
@@ -2056,7 +2056,7 @@ def generate_market_narrative_report(
         return report
 
     print("=" * 80)
-    print("besFundLens Market Narrative Report")
+    print("turkeyFundLens Market Narrative Report")
     print("=" * 80)
 
     print("\nUniverse Overview")
@@ -2357,9 +2357,9 @@ def generate_archetype_insights(
 # ============================================================
 
 # Report wording and label translations live in core/localization.py.
-# Re-exported so that `from besfundlens.core.engine import report_label`
+# Re-exported so that `from turkeyfundlens.core.engine import report_label`
 # and friends keep working.
-from besfundlens.core.localization import (  # noqa: F401
+from turkeyfundlens.core.localization import (  # noqa: F401
     ARCHETYPE_TRANSLATIONS,
     CURRENCY_TRANSLATIONS,
     DOMINANCE_TRANSLATIONS,
@@ -2720,7 +2720,7 @@ def market_report_to_markdown(
     return "\n".join(lines)
 
 
-def save_markdown_report(markdown_text: str, file_path: str = "besfundlens_market_report.md") -> str:
+def save_markdown_report(markdown_text: str, file_path: str = "turkeyfundlens_market_report.md") -> str:
     """
     Markdown raporu dosyaya kaydeder ve dosya yolunu döndürür.
     """
@@ -3032,7 +3032,7 @@ def run_allocation_classification(
     """
     Run the v2 allocation classifier against the initialized engine panel.
 
-    Thin wrapper over :func:`besfundlens.classification.classify_universe` that
+    Thin wrapper over :func:`turkeyfundlens.classification.classify_universe` that
     supplies the engine's DNA panel and asset metadata table.
     """
     require_initialized()
@@ -3115,7 +3115,7 @@ def initialize_engine(
     include_unpublished: bool = False,
 ) -> dict:
     """
-    Initialize besFundLens analytics engine from two source DataFrames.
+    Initialize turkeyFundLens analytics engine from two source DataFrames.
 
     Parameters
     ----------
@@ -3194,7 +3194,7 @@ def require_initialized() -> None:
     """Raise a clear error if analytics functions are called before initialization."""
     if not is_engine_initialized():
         raise RuntimeError(
-            "besFundLens engine is not initialized. Call initialize_engine(df_genel, df_dagilim) "
+            "turkeyFundLens engine is not initialized. Call initialize_engine(df_genel, df_dagilim) "
             "or use a workflow helper such as run_universe_analysis_from_sqlite()."
         )
 

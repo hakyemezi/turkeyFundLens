@@ -1,6 +1,6 @@
 # Allocation Classification (v2)
 
-How besFundLens classifies pension funds by what they actually hold.
+How turkeyFundLens classifies pension funds by what they actually hold.
 
 ## Design principle
 
@@ -38,7 +38,7 @@ panel (raw allocation columns)
   -> stability               sub-window class stability, drift, volatility
 ```
 
-Entry point: `besfundlens.classification.classify_universe()`.
+Entry point: `turkeyfundlens.classification.classify_universe()`.
 
 ## Feature space
 
@@ -269,11 +269,11 @@ safe to load:
 Reusing a saved model is what makes period-over-period comparison work:
 
 ```bash
-python scripts/classify_funds.py --db-path data/besfundlens.sqlite --lookback 3m \
+python scripts/classify_funds.py --db-path data/turkeyfundlens.sqlite --lookback 3m \
   --fit --model-path models/allocation_classifier.json
 ```
 ```bash
-python scripts/classify_funds.py --db-path data/besfundlens.sqlite --lookback 1m \
+python scripts/classify_funds.py --db-path data/turkeyfundlens.sqlite --lookback 1m \
   --predict --model-path models/allocation_classifier.json --output reports/classification_1m.csv
 ```
 

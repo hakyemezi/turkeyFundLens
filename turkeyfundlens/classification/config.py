@@ -1,5 +1,5 @@
 """
-Configuration for the besFundLens allocation classification layer.
+Configuration for the turkeyFundLens allocation classification layer.
 
 Every threshold used by the classifier lives here. Nothing is hard-coded in the
 classification functions themselves, so a caller can re-band the universe

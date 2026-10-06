@@ -1,5 +1,5 @@
 """
-besFundLens web interface.
+turkeyFundLens web interface.
 
 The engine already answers the question the project exists for: did a fund's
 AUM move because markets moved, or because investors added and withdrew money?
@@ -24,7 +24,7 @@ APP_DIR = Path(__file__).resolve().parent
 
 # Where the file times of this app's imported modules are kept between runs.
 # On sys, because it has to outlive the modules it describes.
-MODULE_STAMPS = "_besfundlens_module_stamps"
+MODULE_STAMPS = "_turkeyfundlens_module_stamps"
 
 
 def own_modules():
@@ -87,15 +87,15 @@ def remember_modules():
 
 forget_stale_modules()
 
-import besfundlens as bfl  # noqa: E402  (after the stale ones are dropped)
-from besfundlens.config import DEFAULT_DB_PATHS, FUND_TYPE_SECURITIES, FUND_TYPES
-from besfundlens.core.engine import (
+import turkeyfundlens as tfl  # noqa: E402  (after the stale ones are dropped)
+from turkeyfundlens.config import DEFAULT_DB_PATHS, FUND_TYPE_SECURITIES, FUND_TYPES
+from turkeyfundlens.core.engine import (
     UNIVERSE_MIN_START_AUM,
     report_label,
     slice_date_window,
     unpublished_funds,
 )
-from besfundlens.core.stress import (
+from turkeyfundlens.core.stress import (
     EVENT_MANUAL,
     FREEZE_MIN_DAYS,
     HEAVY_OUTFLOW,
@@ -103,15 +103,15 @@ from besfundlens.core.stress import (
     TURN_THRESHOLD,
     stress_signals,
 )
-from besfundlens.data.calendar_quality import check_missing_business_days
-from besfundlens.data.loaders import load_data
-from besfundlens.data.tefas_client import FetchConfig
+from turkeyfundlens.data.calendar_quality import check_missing_business_days
+from turkeyfundlens.data.loaders import load_data
+from turkeyfundlens.data.tefas_client import FetchConfig
 
 from app_translations import LANGUAGES, MONTHS, UI, UI_BY_FUND_TYPE
 
 remember_modules()
 
-st.set_page_config(page_title="besFundLens", page_icon="🔍", layout="wide")
+st.set_page_config(page_title="turkeyFundLens", page_icon="🔍", layout="wide")
 
 # TEFAS caps a request at about a month and answers with an empty result rather
 # than an error when asked for more, or when asked too quickly, so the client
@@ -178,8 +178,8 @@ PERCENT_COLUMNS = [
 
 # ------------------------------------------------------------------ language
 
-st.sidebar.title("🔍 besFundLens")
-st.sidebar.caption(bfl.BUILD_VERSION)
+st.sidebar.title("🔍 turkeyFundLens")
+st.sidebar.caption(tfl.BUILD_VERSION)
 
 # Streamlit has written the new choice into session state before this reruns,
 # so the selector's own label can be shown in the language being switched to.
@@ -303,7 +303,7 @@ def analyse(live, fund_type, db_path, start, end, language, valid_only, include_
     missing = check_missing_business_days(window_general) if live else pd.DatetimeIndex([])
 
     return (missing,) + pack(
-        bfl.run_universe_analysis_from_dataframes(
+        tfl.run_universe_analysis_from_dataframes(
             df_general,
             df_allocation,
             valid_only=valid_only,
@@ -320,7 +320,7 @@ def analyse(live, fund_type, db_path, start, end, language, valid_only, include_
 @st.cache_data(show_spinner=False, ttl=6 * 60 * 60)
 def find_stress(live, fund_type, db_path, start, end, event_date):
     """
-    The stress signals for the window; see besfundlens.core.stress.
+    The stress signals for the window; see turkeyfundlens.core.stress.
 
     With ``event_date`` None the event is detected from the data, so it moves
     with the window and with every day the data adds.
@@ -349,19 +349,19 @@ def localize(universe, market_report, language, fund_type):
 
     universe = universe.copy()
     universe["archetype"] = universe["archetype"].map(
-        lambda v: bfl.translate_archetype(v, language)
+        lambda v: tfl.translate_archetype(v, language)
     )
     universe["flow_regime"] = universe["flow_regime"].map(
-        lambda v: bfl.translate_flow_regime(v, language, investors=investors)
+        lambda v: tfl.translate_flow_regime(v, language, investors=investors)
     )
     universe["market_flow_quadrant"] = universe["market_flow_quadrant"].map(
-        lambda v: bfl.translate_quadrant_name(v, language)
+        lambda v: tfl.translate_quadrant_name(v, language)
     )
 
     market_report = dict(market_report)
     for key, column, translate in (
-        ("quadrant_summary", "market_flow_quadrant", bfl.translate_quadrant_name),
-        ("archetype_summary", "archetype", bfl.translate_archetype),
+        ("quadrant_summary", "market_flow_quadrant", tfl.translate_quadrant_name),
+        ("archetype_summary", "archetype", tfl.translate_archetype),
     ):
         table = market_report[key].copy()
         table[column] = table[column].map(lambda v: translate(v, language))
@@ -1007,7 +1007,7 @@ if view == "funds":
     st.download_button(
         t("download_csv"),
         view_df.to_csv(index=False).encode("utf-8-sig"),
-        file_name=f"besfundlens_{fund_type}_{start_date}_{end_date}_{language}.csv",
+        file_name=f"turkeyfundlens_{fund_type}_{start_date}_{end_date}_{language}.csv",
         mime="text/csv",
     )
 
@@ -1173,11 +1173,11 @@ if view == "detail":
                     t("detail_lookthrough"),
                 ],
                 "  ": [
-                    f"{bfl.translate_asset_group(fund['top_asset_group'], language)} "
+                    f"{tfl.translate_asset_group(fund['top_asset_group'], language)} "
                     f"— {weight(fund['top_asset_weight'])}",
-                    f"{bfl.translate_market_scope(fund['top_scope'], language)} "
+                    f"{tfl.translate_market_scope(fund['top_scope'], language)} "
                     f"— {weight(fund['top_scope_weight'])}",
-                    f"{bfl.translate_currency_exposure(fund['top_currency'], language)} "
+                    f"{tfl.translate_currency_exposure(fund['top_currency'], language)} "
                     f"— {weight(fund['top_currency_weight'])}",
                     weight(fund["lookthrough_weight"]),
                 ],
@@ -1206,7 +1206,7 @@ if view == "report":
     st.download_button(
         t("download_report"),
         markdown.encode("utf-8"),
-        file_name=f"besfundlens_report_{fund_type}_{start_date}_{end_date}_{language}.md",
+        file_name=f"turkeyfundlens_report_{fund_type}_{start_date}_{end_date}_{language}.md",
         mime="text/markdown",
     )
     st.markdown(markdown)

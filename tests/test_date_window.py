@@ -10,7 +10,7 @@ end date leaks into it, and that it refuses a window with nothing to measure.
 import pandas as pd
 import pytest
 
-from besfundlens.core.engine import (
+from turkeyfundlens.core.engine import (
     run_universe_analysis_from_dataframes,
     slice_date_window,
 )

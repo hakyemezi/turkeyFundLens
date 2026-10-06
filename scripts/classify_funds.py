@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from besfundlens.classification import ClassificationConfig
-from besfundlens.classification.report import classification_report_to_markdown
-from besfundlens.workflows import classify_funds_from_sqlite
+from turkeyfundlens.classification import ClassificationConfig
+from turkeyfundlens.classification.report import classification_report_to_markdown
+from turkeyfundlens.workflows import classify_funds_from_sqlite
 
 
 def build_config(args: argparse.Namespace) -> ClassificationConfig:
@@ -30,7 +30,7 @@ def main() -> None:
             "Use --fit to discover classes, --predict to assign funds to an existing model."
         )
     )
-    parser.add_argument("--db-path", default="data/besfundlens.sqlite")
+    parser.add_argument("--db-path", default="data/turkeyfundlens.sqlite")
     parser.add_argument("--lookback", default="3m")
     parser.add_argument("--language", choices=["en", "tr"], default="en")
     parser.add_argument("--output", default="reports/classification.md",

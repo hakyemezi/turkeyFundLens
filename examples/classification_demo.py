@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from besfundlens.classification import ClassificationConfig
-from besfundlens.classification.report import classification_report_to_markdown
-from besfundlens.core.engine import save_markdown_report
-from besfundlens.workflows import classify_funds_from_sqlite
+from turkeyfundlens.classification import ClassificationConfig
+from turkeyfundlens.classification.report import classification_report_to_markdown
+from turkeyfundlens.core.engine import save_markdown_report
+from turkeyfundlens.workflows import classify_funds_from_sqlite
 
-DB_PATH = "data/besfundlens.sqlite"
+DB_PATH = "data/turkeyfundlens.sqlite"
 MODEL_PATH = "models/allocation_classifier.json"
 
 # Fit over a 3-month window and keep the model, so later runs can assign funds

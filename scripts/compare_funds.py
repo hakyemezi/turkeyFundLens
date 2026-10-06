@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import argparse
 
-from besfundlens.workflows import compare_funds_from_sqlite
-from besfundlens.core.engine import selected_funds_report_to_markdown, save_markdown_report
+from turkeyfundlens.workflows import compare_funds_from_sqlite
+from turkeyfundlens.core.engine import selected_funds_report_to_markdown, save_markdown_report
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Compare selected pension funds from SQLite cache.")
-    parser.add_argument("--db-path", default="data/besfundlens.sqlite")
+    parser.add_argument("--db-path", default="data/turkeyfundlens.sqlite")
     parser.add_argument("--funds", required=True, help="Comma-separated fund codes, e.g. AAJ,MHD,MEA")
     parser.add_argument("--lookback", default="1m")
     parser.add_argument("--language", choices=["en", "tr"], default="en")

@@ -316,12 +316,42 @@ def translate_archetype(archetype: str, language: str = DEFAULT_LANGUAGE) -> str
     return archetype
 
 
-def translate_flow_regime(regime: str, language: str = DEFAULT_LANGUAGE) -> str:
+# A pension plan has participants; a securities investment fund has investors.
+# TEFAS counts both in the same field, kisiSayisi, so the engine words its
+# labels for the pension case and only the noun changes for the other. Both
+# Turkish nouns end in -cı, so every suffix the labels attach still agrees.
+INVESTOR_WORDING = {
+    "en": (("Participant", "Investor"), ("participant", "investor")),
+    "tr": (("Katılımcı", "Yatırımcı"), ("katılımcı", "yatırımcı")),
+}
+
+
+def investor_wording(text: str, language: str = DEFAULT_LANGUAGE) -> str:
+    """
+    Reword a label written for pension participants for fund investors.
+
+    Meant for the closed sets of labels the engine generates, which the tests
+    walk in full; not for free text.
+    """
+    for pension_word, fund_word in INVESTOR_WORDING[normalize_language(language)]:
+        text = text.replace(pension_word, fund_word)
+    return text
+
+
+def translate_flow_regime(
+    regime: str,
+    language: str = DEFAULT_LANGUAGE,
+    investors: bool = False,
+) -> str:
     """
     Translate a flow regime label.
+
+    ``investors=True`` words it for securities investment funds, which have
+    investors rather than participants.
     """
     language = normalize_language(language)
-    return FLOW_REGIME_TRANSLATIONS[language].get(regime, regime)
+    label = FLOW_REGIME_TRANSLATIONS[language].get(regime, regime)
+    return investor_wording(label, language) if investors else label
 
 
 def translate_asset_group(group: str, language: str = DEFAULT_LANGUAGE) -> str:

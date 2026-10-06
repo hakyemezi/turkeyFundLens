@@ -4,7 +4,7 @@
 
 besFundLens, emeklilik fonlarının AUM hareketlerini **piyasa etkisi** ve **tahmini yatırımcı akışı** olarak ayrıştırır; portföy DNA'sını haritalar, fonları varlık dağılımına göre sınıflandırır, piyasa-akış rejimlerini belirler ve iki dilli Markdown raporlar üretir.
 
-> Proje şu anda Türkiye BES / emeklilik fonu verilerine odaklanmaktadır. Fiyat tahmin modeli olmaktan ziyade yeniden kullanılabilir bir analiz motoru olarak tasarlanmıştır.
+> Proje iki TEFAS evrenini kapsar: BES / emeklilik fonları (`EMK`) ve menkul kıymet yatırım fonları (`YAT`). Her biri kendi evreni olarak analiz edilir. Fiyat tahmin modeli olmaktan ziyade yeniden kullanılabilir bir analiz motoru olarak tasarlanmıştır.
 
 ## Bu proje neden var?
 
@@ -61,6 +61,11 @@ python scripts/fetch_history.py \
   --end 2026-06-15 \
   --db-path data/besfundlens.sqlite
 ```
+
+Menkul kıymet yatırım fonları için `--fund-type YAT` ekleyin. `--db-path`
+verilmezse her fon türü kendi dosyasını kullanır (`YAT` için
+`data/besfundlens_yat.sqlite`); script yazdığı tabloları değiştirdiği için ortak
+bir dosyada bir evren diğerinin üzerine yazardı.
 
 İngilizce rapor üretmek için:
 
@@ -189,6 +194,21 @@ Atlamak için `run_universe_analysis()` çağrısına `classify=False` verin.
 
 Proje takvim günü yerine **mevcut gözlemler / aralıklar** kullanır. Bu önemlidir; çünkü fon verileri hafta sonları, resmi tatiller veya eksik yayın tarihleri nedeniyle kesintiye uğrayabilir.
 
+Bunun yerine iki tarih arasını ölçmek için — örneğin bir olaydan bugüne —
+`run_universe_analysis_from_sqlite` ya da `run_universe_analysis_from_dataframes`
+fonksiyonlarına `start_date` / `end_date`, `scripts/generate_report.py`'a
+`--start` / `--end` verin. Veri önce pencereye kesilir: başlangıç tarihindeki ya
+da sonrasındaki ilk yayımlanmış gün baz, bitiş tarihindeki ya da öncesindeki son
+gün bitiş olur ve yalnızca pencerenin tamamını kapsayan fonlar sayılır.
+
+TEFAS'ın bir fonu değerleme olmadan listelediği günler — sıfır fiyat ya da
+vadesi dolmuş fon için dolaşımda payı olmayan yer tutucu kayıt — varsayılan
+olarak neredeyse tamamen kayıp değil, yayımlanmamış gün sayılır; fon, kapsamadığı
+pencereden çıkar. Sıfırları yayımlandığı gibi almak için `include_unpublished=True`
+(ya da `--include-unpublished`) verin. Bunlar menkul kıymet yatırım fonlarında
+görülür, BES verisinde şimdiye kadar görülmedi; web sayfası etkilenen fonları
+listeler ve analizi çalıştırmadan önce hangisinin uygulanacağını sorar.
+
 ## Web arayüzü
 
 ```bash
@@ -196,11 +216,14 @@ pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
 
-Sayfa **canlı veriyle** açılır: lookback penceresini doğrudan TEFAS'tan çeker,
-böylece sayfayı açan kişi bir cache oluşturulduğu andaki veriyi değil, en son
-yayımlanan günü görür. Bir aylık pencere yaklaşık 10 saniye, bir yıllık ise
-yaklaşık bir dakika sürer; sonrasında altı saat önbelleklenir. Başlıkta verinin
-hangi tarihe kadar olduğu her zaman yazar.
+Sayfa **canlı veriyle** açılır: seçilen tarih aralığını doğrudan TEFAS'tan
+çeker, böylece sayfayı açan kişi bir cache oluşturulduğu andaki veriyi değil, en
+son yayımlanan günü görür; sonuç altı saat önbelleklenir. Kenar çubuğunda evren
+(BES ya da YAT) ile başlangıç ve bitiş tarihi seçilir; varsayılan, bugüne kadarki
+son bir aydır. Canlı çekim en fazla bir yılla sınırlıdır. Başlıkta verinin hangi
+tarihe kadar olduğu her zaman yazar. Aralık içinde değerleme yayımlamayan fon
+varsa sayfa bunları adıyla listeler ve analizi çalıştırmadan önce hariç mi
+tutulacaklarını, 0 olarak mı dahil edileceklerini sorar.
 
 Arayüzün kendisi de çift dillidir: kenar çubuğundaki seçici tüm sayfayı değiştirir ve tablodaki ile grafikteki fon tipi, rejim ve akış rejimi etiketleri de raporla birlikte çevrilir.
 

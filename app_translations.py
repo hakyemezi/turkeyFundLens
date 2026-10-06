@@ -31,6 +31,14 @@ UI = {
         "title": "Did the market move it, or did investors?",
 
         # sidebar
+        "fund_type": "Fund type",
+        "fund_type_short_EMK": "BES",
+        "fund_type_short_YAT": "YAT",
+        "fund_type_help": "BES: pension funds. YAT: securities investment funds "
+                          "(Menkul Kıymet Yatırım Fonları), the mutual funds TEFAS "
+                          "lists under that tab. Each is analysed as its own universe.",
+        "fund_type_EMK": "Pension funds (BES)",
+        "fund_type_YAT": "Securities investment funds",
         "data": "Data",
         "source_live": "Live from TEFAS",
         "source_cache": "Local SQLite cache",
@@ -38,14 +46,16 @@ UI = {
                        "reflects the latest published day. The cache is for local "
                        "use, where years of history are already on disk.",
         "cache_path": "Cache path",
-        "lookback": "Lookback",
-        "fetch_estimate": "Fetching {months} takes roughly {seconds} seconds on a "
-                          "cold start, then it is cached.",
-        "months_one": "1 month",
-        "months_many": "{n} months",
+        "start_date": "Start date",
+        "end_date": "End date",
+        "start_help": "Prices on the first published day on or after this date are "
+                      "the base, so that day's own move is not included. To count "
+                      "it, start on the business day before.",
         "valid_only": "Valid universe records only",
-        "valid_only_help": "Drops funds whose history does not cover the whole "
-                           "lookback window.",
+        "valid_only_help": "Drops funds that started the window with {aum} or less, "
+                           "or with no participants, and any whose ratios cannot be "
+                           "computed. Funds that do not cover the whole window are "
+                           "left out either way.",
         "deeper_title": "Want to go deeper than a year?",
         "deeper_body": "Run this project on your own machine. Locally you can build "
                        "a SQLite cache of several years and analyse the whole span, "
@@ -58,8 +68,8 @@ UI = {
         # loading and errors
         "no_cache": "No SQLite cache at `{path}`. Switch to **{live}**, or build a "
                     "cache with the command in the sidebar.",
-        "spinner_live": "Fetching {months} from TEFAS and analysing — about {seconds} seconds",
-        "spinner_cache": "Running the {lookback} analysis",
+        "spinner_live": "Fetching {start} – {end} from TEFAS and analysing",
+        "spinner_cache": "Analysing {start} – {end}",
         "empty_response": "TEFAS returned nothing for that window. It answers with an "
                           "empty result rather than an error when it is being called "
                           "too quickly, so waiting a minute and rerunning usually fixes it.",
@@ -69,7 +79,7 @@ UI = {
         "via_live": "fetched from TEFAS",
         "via_cache": "from the local cache",
         "funds_count": "{n} funds",
-        "window": "{lookback} lookback, {intervals} trading intervals, from {date}",
+        "window": "{intervals} trading intervals from {date}",
         "kpi_end_aum": "End AUM",
         "kpi_flow_share": "Flow as % of start AUM",
 
@@ -110,9 +120,31 @@ UI = {
         "keep_one": "Select at least one column.",
         "download_csv": "Download this view as CSV",
         "missing_days": "{n} business day(s) in this window have no published data: {days}. "
-                        "The analysis still runs, but a gap can distort a short lookback.",
-        "too_short": "The {lookback} window reaches further back than the loaded "
-                     "data covers. Pick a shorter lookback, or extend the cache.",
+                        "The analysis still runs, but a gap can distort a short window.",
+        "too_short": "Not enough data to analyse {start} – {end}: it takes at least "
+                     "two published days, and only funds covering the whole range "
+                     "count. With a cache, pick dates inside what it holds, or "
+                     "extend it.",
+        "partial_window": "You asked for {start} – {end}; the data covers {first} – "
+                          "{last}, so that is what is analysed.",
+        "unpublished": "{n} fund(s) have no valuation on some day in this window — a "
+                       "zero price, or a placeholder with no units in circulation — "
+                       "which TEFAS shows for a fund that is suspended, liquidating or "
+                       "has matured. Largest first: {codes}.",
+        "unpublished_choice": "How should these funds be treated?",
+        "unpublished_exclude": "Exclude them",
+        "unpublished_include": "Include them as zero",
+        "unpublished_help": "Excluded: those days count as unpublished, so the funds "
+                            "drop out of the window and of the totals. Included as zero: "
+                            "the figures are taken as TEFAS published them, so a zero "
+                            "price reads as a -100% return split between market effect "
+                            "and outflow, and a large fund moves the universe totals "
+                            "with it.",
+        "unpublished_ask": "Pick one to run the analysis. The choice is kept for "
+                           "this session and can be changed here.",
+        "dates_order": "The start date has to be before the end date.",
+        "live_too_long": "Live mode fetches at most a year at a time. Narrow the "
+                         "dates, or use a local cache for a longer span.",
         "view_detail": "Fund detail",
         "pick_fund": "Pick a fund",
         "detail_what_moved": "What moved its AUM",
@@ -141,6 +173,14 @@ UI = {
         "title": "Piyasa mı taşıdı, yatırımcılar mı?",
 
         # kenar çubuğu
+        "fund_type": "Fon türü",
+        "fund_type_short_EMK": "BES",
+        "fund_type_short_YAT": "YAT",
+        "fund_type_help": "BES: emeklilik fonları. YAT: TEFAS'ta bu sekmede listelenen "
+                          "menkul kıymet yatırım fonları. Her biri kendi evreni olarak "
+                          "analiz edilir.",
+        "fund_type_EMK": "Emeklilik fonları (BES)",
+        "fund_type_YAT": "Menkul kıymet yatırım fonları",
         "data": "Veri",
         "source_live": "TEFAS'tan canlı",
         "source_cache": "Yerel SQLite cache",
@@ -148,13 +188,15 @@ UI = {
                        "zaman en son yayımlanan günü gösterir. Cache, yılların geçmişi "
                        "zaten diskte olduğu için yerel kullanıma yöneliktir.",
         "cache_path": "Cache yolu",
-        "lookback": "Dönem",
-        "fetch_estimate": "{months} çekmek ilk açılışta yaklaşık {seconds} saniye sürer, "
-                          "sonrasında önbelleğe alınır.",
-        "months_one": "1 ay",
-        "months_many": "{n} ay",
+        "start_date": "Başlangıç tarihi",
+        "end_date": "Bitiş tarihi",
+        "start_help": "Bu tarihteki ya da sonrasındaki ilk yayımlanmış günün fiyatları "
+                      "baz alınır; o günün kendi hareketi dahil edilmez. Dahil etmek "
+                      "için bir önceki iş gününden başlatın.",
         "valid_only": "Yalnızca geçerli evren kayıtları",
-        "valid_only_help": "Geçmişi dönemin tamamını kapsamayan fonları eler.",
+        "valid_only_help": "Aralığa {aum} veya altında ya da katılımcısız başlayan "
+                           "fonları ve oranları hesaplanamayanları eler. Aralığın "
+                           "tamamını kapsamayan fonlar her durumda dışarıda kalır.",
         "deeper_title": "Bir yıldan uzun analiz mi istiyorsunuz?",
         "deeper_body": "Projeyi kendi bilgisayarınızda çalıştırın. Yerelde birkaç yıllık "
                        "bir SQLite cache oluşturup tüm dönemi analiz edebilir, her "
@@ -167,8 +209,8 @@ UI = {
         # yükleme ve hatalar
         "no_cache": "`{path}` yolunda SQLite cache yok. **{live}** seçeneğine geçin ya da "
                     "kenar çubuğundaki komutla bir cache oluşturun.",
-        "spinner_live": "TEFAS'tan {months} veri çekiliyor ve analiz ediliyor — yaklaşık {seconds} saniye",
-        "spinner_cache": "{lookback} analizi çalışıyor",
+        "spinner_live": "TEFAS'tan {start} – {end} verisi çekiliyor ve analiz ediliyor",
+        "spinner_cache": "{start} – {end} analizi çalışıyor",
         "empty_response": "TEFAS bu dönem için boş yanıt verdi. Çok hızlı çağrıldığında hata "
                           "yerine boş sonuç döndürür; bir dakika bekleyip tekrar çalıştırmak "
                           "genelde çözer.",
@@ -178,7 +220,7 @@ UI = {
         "via_live": "TEFAS'tan çekildi",
         "via_cache": "yerel cache'ten",
         "funds_count": "{n} fon",
-        "window": "{lookback} dönem, {intervals} işlem aralığı, {date} tarihinden itibaren",
+        "window": "{date} tarihinden itibaren {intervals} işlem aralığı",
         "kpi_end_aum": "Bitiş AUM",
         "kpi_flow_share": "Başlangıç AUM'a göre akış",
 
@@ -219,9 +261,30 @@ UI = {
         "keep_one": "En az bir sütun seçin.",
         "download_csv": "Bu görünümü CSV olarak indir",
         "missing_days": "Bu dönemde {n} iş gününe ait veri yayımlanmamış: {days}. "
-                        "Analiz yine de çalışır, ancak boşluk kısa dönemleri bozabilir.",
-        "too_short": "{lookback} dönemi, yüklü verinin kapsadığından daha geriye "
-                     "gidiyor. Daha kısa bir dönem seçin ya da cache'i genişletin.",
+                        "Analiz yine de çalışır, ancak boşluk kısa aralıkları bozabilir.",
+        "too_short": "{start} – {end} aralığını analiz etmek için yeterli veri yok: en "
+                     "az iki yayımlanmış gün gerekir ve yalnızca aralığın tamamını "
+                     "kapsayan fonlar sayılır. Cache kullanıyorsanız cache'in kapsadığı "
+                     "tarihleri seçin ya da cache'i genişletin.",
+        "partial_window": "{start} – {end} aralığı istendi; veri {first} – {last} "
+                          "aralığını kapsıyor, analiz bu aralık üzerinden yapıldı.",
+        "unpublished": "{n} fon bu aralıktaki bazı günlerde değerleme yayımlamadı (sıfır "
+                       "fiyat ya da dolaşımda payı olmayan yer tutucu kayıt); TEFAS bunu "
+                       "işlemleri durdurulan, tasfiye edilen ya da vadesi dolan fonlar "
+                       "için gösterir. Büyükten küçüğe: {codes}.",
+        "unpublished_choice": "Bu fonlar nasıl ele alınsın?",
+        "unpublished_exclude": "Hariç tut",
+        "unpublished_include": "0 olarak dahil et",
+        "unpublished_help": "Hariç tut: o günler yayımlanmamış sayılır, fonlar aralıktan "
+                            "ve toplamlardan çıkar. 0 olarak dahil et: rakamlar TEFAS'ın "
+                            "yayımladığı gibi alınır; sıfır fiyat −%100 getiri olarak "
+                            "okunup piyasa etkisi ile çıkış arasında bölünür ve büyük bir "
+                            "fon evren toplamlarını da birlikte etkiler.",
+        "unpublished_ask": "Analizi çalıştırmak için birini seçin. Seçim bu oturum "
+                           "boyunca hatırlanır ve buradan değiştirilebilir.",
+        "dates_order": "Başlangıç tarihi bitiş tarihinden önce olmalı.",
+        "live_too_long": "Canlı modda tek seferde en fazla bir yıl çekilir. Aralığı "
+                         "daraltın ya da daha uzun dönem için yerel cache kullanın.",
         "view_detail": "Fon detayı",
         "pick_fund": "Bir fon seçin",
         "detail_what_moved": "AUM'unu ne hareket ettirdi",
@@ -244,5 +307,33 @@ UI = {
         "bar_market_effect": "Piyasa etkisi",
         "bar_flow": "Yatırımcı akışı",
         "download_report": "Raporu Markdown olarak indir",
+    },
+}
+
+# A pension plan has participants; a securities investment fund has investors.
+# TEFAS reports both as the same head count, so only the word changes. These
+# replace the keys above while the YAT universe is selected. The engine's own
+# labels are reworded by besfundlens.core.localization.investor_wording.
+UI_BY_FUND_TYPE = {
+    "YAT": {
+        "en": {
+            "col_participants": "Investors",
+            "col_participant_change": "Investor change %",
+            "detail_participants": "Investors",
+            "detail_participant_change": "Investor change",
+            "valid_only_help": "Drops funds that started the window with {aum} or less, "
+                               "or with no investors, and any whose ratios cannot be "
+                               "computed. Funds that do not cover the whole window are "
+                               "left out either way.",
+        },
+        "tr": {
+            "col_participants": "Yatırımcı",
+            "col_participant_change": "Yatırımcı değişimi %",
+            "detail_participants": "Yatırımcı",
+            "detail_participant_change": "Yatırımcı değişimi",
+            "valid_only_help": "Aralığa {aum} veya altında ya da yatırımcısız başlayan "
+                               "fonları ve oranları hesaplanamayanları eler. Aralığın "
+                               "tamamını kapsamayan fonlar her durumda dışarıda kalır.",
+        },
     },
 }

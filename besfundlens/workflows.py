@@ -9,6 +9,7 @@ from besfundlens.core.engine import (
     run_universe_analysis,
     compare_funds,
     selected_funds_report_to_markdown,
+    slice_date_window,
 )
 from besfundlens.classification.report import classification_report_to_markdown
 from besfundlens.data.loaders import load_data
@@ -26,9 +27,24 @@ def run_universe_analysis_from_sqlite(
     classification_model_path=None,
     fit_classifier: bool = True,
     save_classifier_to=None,
+    start_date=None,
+    end_date=None,
+    include_unpublished: bool = False,
 ) -> dict:
+    """
+    Analyse a SQLite cache, over the latest ``lookback`` or between two dates.
+
+    ``start_date`` / ``end_date`` take precedence over ``lookback``; see
+    :func:`besfundlens.core.engine.slice_date_window`. ``include_unpublished``
+    keeps rows TEFAS lists without a valuation instead of dropping them; see
+    :func:`besfundlens.core.engine.initialize_engine`.
+    """
     df_general, df_allocation = load_data(source="sqlite", db_path=db_path)
-    initialize_engine(df_general, df_allocation)
+    if start_date is not None or end_date is not None:
+        df_general, df_allocation, lookback = slice_date_window(
+            df_general, df_allocation, start_date, end_date
+        )
+    initialize_engine(df_general, df_allocation, include_unpublished=include_unpublished)
     return run_universe_analysis(
         lookback=lookback,
         valid_only=valid_only,

@@ -116,3 +116,38 @@ def test_every_dna_value_the_engine_emits_is_covered():
         assert value in SCOPE_TRANSLATIONS["tr"], value
     for value in set(currency_exposure_map.values()):
         assert value in CURRENCY_TRANSLATIONS["tr"], value
+
+
+def test_securities_fund_regimes_speak_of_investors():
+    """
+    YAT funds have investors, not participants. Every regime the engine can
+    produce is reworded, in both languages, and none is left half done.
+    """
+    from besfundlens.core.engine import translate_flow_regime
+
+    flows = [0.2, 0.05, 0.005, 0.001, 0.0, -0.001, -0.005, -0.05, -0.2]
+    produced = {
+        classify_flow_regime_v2(flow, participants)
+        for flow in flows
+        for participants in (1, 0, -1)
+    }
+    for regime in produced:
+        for language in ("en", "tr"):
+            label = translate_flow_regime(regime, language, investors=True)
+            assert "articipant" not in label and "atılımcı" not in label, label
+
+    assert (
+        translate_flow_regime("Strong net inflow with participant growth", "tr", investors=True)
+        == "Yatırımcı artışıyla güçlü net giriş"
+    )
+    assert (
+        translate_flow_regime("Moderate net outflow despite participant growth", "en", investors=True)
+        == "Moderate net outflow despite investor growth"
+    )
+
+
+def test_pension_regimes_keep_their_wording():
+    assert (
+        translate_flow_regime("Strong net inflow with participant growth", "tr")
+        == "Katılımcı artışıyla güçlü net giriş"
+    )

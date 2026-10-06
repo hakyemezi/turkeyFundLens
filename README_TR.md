@@ -232,7 +232,25 @@ yatırımcı akışı. Piyasa düşerken girişle büyüyen fonlar kendi köşes
 Yanında kuadran ve arketip özetleri, filtrelenebilir fon tablosu, CSV dışa
 aktarma ve Markdown rapor bulunur.
 
-Fon detay görünümü aynı soruyu tek fona indirger: AUM değişimi neyden oluştu, portföy DNA'sı nedir ve evrenin geri kalanına göre nerede duruyor.
+Fon detay görünümü aynı soruyu tek fona indirger: AUM değişimi neyden oluştu, portföy DNA'sı nedir, akışı gün gün nasıl seyretti ve evrenin geri kalanına göre nerede duruyor.
+
+Stres görünümü, dönem toplamlarının gösteremediği yolu okur: girişlerle iki
+katına çıkıp bir günde üçte birini kaybeden ve sonra alım-satıma kapanan bir fon
+toplamda sağlıklı bir giriş gösterebilir; alım-satıma kapanmış bir fonun ise
+akışı hiç olmaz. `besfundlens.core.stress` şunları bulur:
+
+- **olay tarihi**: sabitlenmez, her çalıştırmada veriden tespit edilir. Fonların
+  olağandışı bir kısmının fiyatının aynı gün düştüğü gündür; ardından iki gün
+  içinde sert çıkışlar geldiyse *fon krizi*, gelmediyse *piyasa şoku* sayılır
+  (çıkışları kısıtlı olan BES şok gösterir). Kullanıcı tarihi elle de seçebilir;
+- her fon için **olay öncesi ve sonrası akış**, ve olay çevresinde güçlü
+  girişten güçlü çıkışa dönen fonlar;
+- **alım-satımı duran fonlar**: öncesinde her gün işlem gören bir fonda pay ve
+  kişi sayısı beş yayın günü üst üste değişmezken fiyatın değişmeye devam etmesi;
+- **aynısı kurucuya göre**, çünkü stres birkaç şirkette yoğunlaşma eğilimindedir.
+
+Canlı çekim, bu ölçümlerin karşılaştırıldığı taban için başlangıç tarihinden bir
+ay öncesine de uzanır; analizin kendisi yine yalnızca seçilen aralığı kapsar.
 
 Bir yıldan uzun analizler için projeyi kendi bilgisayarınızda çalıştırın ve
 `scripts/fetch_history.py` ile oluşturduğunuz SQLite cache'i kullanın. Kenar

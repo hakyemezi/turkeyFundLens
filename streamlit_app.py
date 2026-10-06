@@ -10,6 +10,7 @@ it.
 Run with:  streamlit run streamlit_app.py
 """
 
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -17,7 +18,76 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-import besfundlens as bfl
+# ------------------------------------------------------------------ stale modules
+
+APP_DIR = Path(__file__).resolve().parent
+
+# Where the file times of this app's imported modules are kept between runs.
+# On sys, because it has to outlive the modules it describes.
+MODULE_STAMPS = "_besfundlens_module_stamps"
+
+
+def own_modules():
+    """This app's imported modules — the package and the translations — by file."""
+    found = {}
+    for name, module in list(sys.modules.items()):
+        path = getattr(module, "__file__", None)
+        if name == "__main__" or not path:
+            continue
+        path = Path(path).resolve()
+        if APP_DIR in path.parents:
+            found[name] = path
+    return found
+
+
+def file_stamp(path):
+    try:
+        return path.stat().st_mtime_ns
+    except OSError:
+        return None
+
+
+def forget_stale_modules():
+    """
+    Drop this app's own modules from memory if their files have changed.
+
+    Streamlit Community Cloud pulls a push into the running app and reruns this
+    script from the new file, but keeps every module it had already imported
+    as it was. The new page then ran against the old translations and engine,
+    and the stress view arrived as KeyError: 'event_help'. Locally the file
+    watcher reloads them; this does the same where there is none.
+
+    All of them go together, so old and new code are never mixed, and the
+    caches with them, since a result the old engine computed would otherwise be
+    served for hours. With no record yet — the first run of this code in a
+    process that has already imported the old modules — they are taken as
+    stale; in a fresh process there is nothing imported to drop.
+    """
+    stamps = getattr(sys, MODULE_STAMPS, None)
+    loaded = own_modules()
+    changed = stamps is None or any(
+        name in stamps and stamps[name] != file_stamp(path)
+        for name, path in loaded.items()
+    )
+    if loaded and changed:
+        for name in loaded:
+            sys.modules.pop(name, None)
+        st.cache_data.clear()
+        st.cache_resource.clear()
+
+
+def remember_modules():
+    """Record the file times of the modules as just imported."""
+    setattr(
+        sys,
+        MODULE_STAMPS,
+        {name: file_stamp(path) for name, path in own_modules().items()},
+    )
+
+
+forget_stale_modules()
+
+import besfundlens as bfl  # noqa: E402  (after the stale ones are dropped)
 from besfundlens.config import DEFAULT_DB_PATHS, FUND_TYPE_SECURITIES, FUND_TYPES
 from besfundlens.core.engine import (
     UNIVERSE_MIN_START_AUM,
@@ -38,6 +108,8 @@ from besfundlens.data.loaders import load_data
 from besfundlens.data.tefas_client import FetchConfig
 
 from app_translations import LANGUAGES, MONTHS, UI, UI_BY_FUND_TYPE
+
+remember_modules()
 
 st.set_page_config(page_title="besFundLens", page_icon="🔍", layout="wide")
 

@@ -1,14 +1,19 @@
-# besFundLens
+# turkeyFundLens
 
-**English-first, bilingual-ready analytics engine for Turkish pension funds.**
+**English-first, bilingual-ready analytics engine for Turkish pension and securities investment funds.**
 
-besFundLens decomposes pension fund AUM movements into **market effect** and **estimated investor flow**, maps portfolio DNA, classifies funds by their asset allocation, identifies market-flow regimes, and generates bilingual Markdown reports.
+> Formerly **besFundLens**. Renamed in October 2026, when securities investment
+> funds joined the pension (BES) funds it started with. Links to the old
+> repository redirect here, and `import besfundlens` still works, with a
+> deprecation warning.
+
+turkeyFundLens decomposes fund AUM movements into **market effect** and **estimated investor flow**, maps portfolio DNA, classifies funds by their asset allocation, identifies market-flow regimes, and generates bilingual Markdown reports.
 
 > The project covers the two TEFAS universes it was built for: BES / pension funds (`EMK`) and securities investment funds (`YAT`, Menkul Kıymet Yatırım Fonları). Each is analysed as its own universe. It is designed as a reusable analytics engine rather than a price-prediction model.
 
 ## Why this project exists
 
-Most fund analysis stops at return and AUM change. besFundLens asks a deeper question:
+Most fund analysis stops at return and AUM change. turkeyFundLens asks a deeper question:
 
 > Did AUM change because markets moved, or because investors added/withdrew money?
 
@@ -60,11 +65,11 @@ SQLite is optional but recommended for multi-year analysis and repeated workflow
 python scripts/fetch_history.py \
   --start 2021-06-15 \
   --end 2026-06-15 \
-  --db-path data/besfundlens.sqlite
+  --db-path data/turkeyfundlens.sqlite
 ```
 
 Add `--fund-type YAT` for securities investment funds. Without `--db-path` each
-fund type gets its own file (`data/besfundlens_yat.sqlite` for `YAT`), since the
+fund type gets its own file (`data/turkeyfundlens_yat.sqlite` for `YAT`), since the
 script replaces the tables it writes and a shared file would let one universe
 overwrite the other.
 
@@ -72,7 +77,7 @@ Generate an English report:
 
 ```bash
 python scripts/generate_report.py \
-  --db-path data/besfundlens.sqlite \
+  --db-path data/turkeyfundlens.sqlite \
   --lookback 1m \
   --language en \
   --output sample_reports/market_report_en.md
@@ -82,7 +87,7 @@ Generate a Turkish report:
 
 ```bash
 python scripts/generate_report.py \
-  --db-path data/besfundlens.sqlite \
+  --db-path data/turkeyfundlens.sqlite \
   --lookback 1m \
   --language tr \
   --output sample_reports/market_report_tr.md
@@ -91,10 +96,10 @@ python scripts/generate_report.py \
 ## Python API
 
 ```python
-from besfundlens.workflows import run_universe_analysis_from_sqlite
+from turkeyfundlens.workflows import run_universe_analysis_from_sqlite
 
 result = run_universe_analysis_from_sqlite(
-    db_path="data/besfundlens.sqlite",
+    db_path="data/turkeyfundlens.sqlite",
     lookback="1m",
     language="en",
     top_n=10,
@@ -106,11 +111,11 @@ print(result["markdown"])
 Selected fund comparison:
 
 ```python
-from besfundlens.workflows import compare_funds_from_sqlite
-from besfundlens.core.engine import selected_funds_report_to_markdown
+from turkeyfundlens.workflows import compare_funds_from_sqlite
+from turkeyfundlens.core.engine import selected_funds_report_to_markdown
 
 comparison = compare_funds_from_sqlite(
-    db_path="data/besfundlens.sqlite",
+    db_path="data/turkeyfundlens.sqlite",
     fund_codes=["AAJ", "MHD", "MEA"],
     lookback="1m",
     sort_by="market_effect_pct",
@@ -127,7 +132,7 @@ Classify the universe and fit a model:
 
 ```bash
 python scripts/classify_funds.py \
-  --db-path data/besfundlens.sqlite \
+  --db-path data/turkeyfundlens.sqlite \
   --lookback 3m \
   --fit \
   --model-path models/allocation_classifier.json \
@@ -139,7 +144,7 @@ Reuse that model on a different window, so the class names mean the same thing:
 
 ```bash
 python scripts/classify_funds.py \
-  --db-path data/besfundlens.sqlite \
+  --db-path data/turkeyfundlens.sqlite \
   --lookback 1m \
   --predict \
   --model-path models/allocation_classifier.json \
@@ -149,10 +154,10 @@ python scripts/classify_funds.py \
 From Python:
 
 ```python
-from besfundlens import classify_funds_from_sqlite
+from turkeyfundlens import classify_funds_from_sqlite
 
 result = classify_funds_from_sqlite(
-    db_path="data/besfundlens.sqlite",
+    db_path="data/turkeyfundlens.sqlite",
     lookback="3m",
     save_model_to="models/allocation_classifier.json",
 )
@@ -167,7 +172,7 @@ print(df[[
 Every threshold is configurable:
 
 ```python
-from besfundlens import ClassificationConfig, classify_funds_from_sqlite
+from turkeyfundlens import ClassificationConfig, classify_funds_from_sqlite
 
 config = ClassificationConfig(
     feature_space="detailed",       # broad | detailed | raw
@@ -178,7 +183,7 @@ config = ClassificationConfig(
     lookthrough_penalty=True,
 )
 
-result = classify_funds_from_sqlite(db_path="data/besfundlens.sqlite", config=config)
+result = classify_funds_from_sqlite(db_path="data/turkeyfundlens.sqlite", config=config)
 ```
 
 Classification is merged into the market narrative report automatically. Pass
@@ -238,7 +243,7 @@ A fund detail view narrows the same question to one fund: what its AUM change wa
 A stress view reads the path between the window's endpoints, which the totals
 cannot show: a fund that doubled on inflows, lost a third in a day and then
 stopped dealing can sum to a healthy inflow, and a fund that has stopped
-dealing has no flow at all. `besfundlens.core.stress` finds:
+dealing has no flow at all. `turkeyfundlens.core.stress` finds:
 
 - **the event date**, detected from the data on every run rather than fixed: the
   day prices fell across an unusual share of funds, told apart as a *run* when
@@ -259,7 +264,7 @@ built with `scripts/fetch_history.py`. The sidebar switches between the two.
 
 ## Data ingestion strategy
 
-besFundLens supports three workflows:
+turkeyFundLens supports three workflows:
 
 1. **Direct API mode** for quick experiments, notebooks and the web interface.
 2. **SQLite cache mode** for multi-year analysis and repeated reporting.
@@ -272,7 +277,7 @@ loader splits that back into the two frames the engine expects:
 
 ```python
 from tefas import get_fund_data_for_years
-from besfundlens.data.loaders import load_turkeyfundsdata_frame
+from turkeyfundlens.data.loaders import load_turkeyfundsdata_frame
 
 df_general, df_allocation = load_turkeyfundsdata_frame(
     get_fund_data_for_years(5, "EMK")
@@ -285,7 +290,7 @@ The cache updater uses a period replacement approach: it removes records from th
 
 ```text
 streamlit_app.py     # web interface
-besfundlens/
+turkeyfundlens/
   core/            # analytics engine, asset metadata, shared utilities, wording
   classification/  # v2 allocation classification layer
   data/            # API client and loaders

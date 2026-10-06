@@ -21,7 +21,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from besfundlens.classification.config import DEFAULT_CONFIG, ClassificationConfig
+from turkeyfundlens.classification.config import DEFAULT_CONFIG, ClassificationConfig
 
 PARTICIPATION_LABELS = {
     "en": {

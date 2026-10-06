@@ -4,17 +4,17 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from besfundlens.classification import (
+from turkeyfundlens.classification import (
     AllocationClassifier,
     ClassificationConfig,
     classify_universe,
 )
-from besfundlens.classification.axes import build_secondary_axes
-from besfundlens.classification.features import build_allocation_features
-from besfundlens.classification.report import classification_report_to_markdown
-from besfundlens.classification.taxonomy import deduplicate_labels, label_centroid
-from besfundlens.core.asset_metadata import build_asset_metadata
-from besfundlens.core.engine import initialize_engine, run_universe_analysis
+from turkeyfundlens.classification.axes import build_secondary_axes
+from turkeyfundlens.classification.features import build_allocation_features
+from turkeyfundlens.classification.report import classification_report_to_markdown
+from turkeyfundlens.classification.taxonomy import deduplicate_labels, label_centroid
+from turkeyfundlens.core.asset_metadata import build_asset_metadata
+from turkeyfundlens.core.engine import initialize_engine, run_universe_analysis
 
 # Four clearly separated allocation profiles. Twelve funds each keeps the
 # universe above the default `min_funds_for_model`, so the clustering path runs.

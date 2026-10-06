@@ -11,7 +11,7 @@ AUM is price times units, so moving one at a time isolates one side of the split
 import pandas as pd
 import pytest
 
-from besfundlens.core.engine import initialize_engine, run_universe_analysis
+from turkeyfundlens.core.engine import initialize_engine, run_universe_analysis
 
 
 def analyse(prices, units, participants=None, lookback=None):

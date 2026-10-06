@@ -1,4 +1,4 @@
-# besFundLens Allocation Classification Report
+# turkeyFundLens Allocation Classification Report
 
 ## Asset Allocation Classes
 

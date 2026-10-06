@@ -1,5 +1,5 @@
-from besfundlens import BUILD_VERSION, resolve_lookback_intervals
-from besfundlens.core.engine import translate_quadrant_name
+from turkeyfundlens import BUILD_VERSION, resolve_lookback_intervals
+from turkeyfundlens.core.engine import translate_quadrant_name
 
 
 def test_version_available():
@@ -18,7 +18,7 @@ def test_tr_quadrant_translation():
 
 def test_moved_helpers_still_importable_from_engine():
     """v0.2.0 moved these out of engine.py; the re-exports must keep working."""
-    from besfundlens.core.engine import (  # noqa: F401
+    from turkeyfundlens.core.engine import (  # noqa: F401
         add_dna_columns,
         asset_group_map,
         broad_asset_group_map,
@@ -40,7 +40,7 @@ def test_moved_helpers_still_importable_from_engine():
 
 
 def test_classification_public_api():
-    from besfundlens import (  # noqa: F401
+    from turkeyfundlens import (  # noqa: F401
         AllocationClassifier,
         ClassificationConfig,
         classification_markdown_from_sqlite,

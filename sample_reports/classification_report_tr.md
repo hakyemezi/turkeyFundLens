@@ -1,4 +1,4 @@
-# besFundLens Varlık Dağılımı Sınıflandırma Raporu
+# turkeyFundLens Varlık Dağılımı Sınıflandırma Raporu
 
 ## Varlık Dağılımı Sınıfları
 

@@ -1,83 +1,32 @@
-"""besFundLens: analytics engine for Turkish pension and securities investment funds."""
+"""
+besfundlens is now turkeyfundlens.
 
-from .core.engine import (
-    BUILD_VERSION,
-    LOOKBACK_PRESETS,
-    initialize_engine,
-    run_universe_analysis,
-    run_universe_analysis_from_dataframes,
-    run_allocation_classification,
-    compare_funds,
-    compare_funds_from_dataframes,
-    selected_funds_report_to_markdown,
-    generate_selected_funds_report,
-    save_markdown_report,
-    print_build_info,
-    resolve_lookback_intervals,
-    slice_date_window,
-    unpublished_funds,
-    translate_archetype,
-    translate_asset_group,
-    translate_currency_exposure,
-    translate_flow_regime,
-    translate_market_scope,
-    translate_quadrant_name,
+The package was renamed in October 2026, when securities investment funds
+joined the pension (BES) funds it started with. This keeps the old name
+importing the same modules — ``from besfundlens.core.engine import safe_divide``
+included — so existing notebooks and scripts keep working, with a warning to
+move to the new name.
+"""
+
+import importlib
+import pkgutil
+import sys
+import warnings
+
+import turkeyfundlens
+
+warnings.warn(
+    "besfundlens has been renamed turkeyfundlens; import turkeyfundlens instead.",
+    DeprecationWarning,
+    stacklevel=2,
 )
 
-from .core.stress import fund_founder, stress_signals
+# Every module under the new name is registered under the old one as well, so a
+# submodule import finds the very same module object rather than loading a
+# second copy with state of its own: the engine keeps its panel in module
+# globals, and two copies would not see each other's.
+for _info in pkgutil.walk_packages(turkeyfundlens.__path__, prefix="turkeyfundlens."):
+    _module = importlib.import_module(_info.name)
+    sys.modules["besfundlens" + _info.name[len("turkeyfundlens"):]] = _module
 
-from .classification import (
-    AllocationClassifier,
-    ClassificationConfig,
-    classification_report_to_markdown,
-    classify_universe,
-    summarize_classification,
-)
-
-from .workflows import (
-    run_universe_analysis_from_sqlite,
-    compare_funds_from_sqlite,
-    build_or_update_cache_then_run,
-    selected_funds_markdown_from_sqlite,
-    classify_funds_from_sqlite,
-    classification_markdown_from_sqlite,
-)
-
-__all__ = [
-    "BUILD_VERSION",
-    "LOOKBACK_PRESETS",
-    "initialize_engine",
-    "run_universe_analysis",
-    "run_universe_analysis_from_dataframes",
-    "run_universe_analysis_from_sqlite",
-    "compare_funds",
-    "compare_funds_from_dataframes",
-    "compare_funds_from_sqlite",
-    "build_or_update_cache_then_run",
-    "selected_funds_report_to_markdown",
-    "selected_funds_markdown_from_sqlite",
-    "generate_selected_funds_report",
-    "save_markdown_report",
-    "print_build_info",
-    "resolve_lookback_intervals",
-    "slice_date_window",
-    "unpublished_funds",
-    "translate_archetype",
-    "translate_asset_group",
-    "translate_currency_exposure",
-    "translate_flow_regime",
-    "translate_market_scope",
-    "translate_quadrant_name",
-    # stress signals
-    "fund_founder",
-    "stress_signals",
-    # v2 allocation classification
-    "AllocationClassifier",
-    "ClassificationConfig",
-    "classify_universe",
-    "classify_funds_from_sqlite",
-    "classification_markdown_from_sqlite",
-    "classification_report_to_markdown",
-    "summarize_classification",
-    "run_allocation_classification",
-]
+sys.modules[__name__] = turkeyfundlens

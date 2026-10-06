@@ -6,7 +6,7 @@ from typing import Optional
 
 import pandas as pd
 
-from besfundlens.data.tefas_client import FetchConfig, fetch_tefas_history
+from turkeyfundlens.data.tefas_client import FetchConfig, fetch_tefas_history
 
 TABLE_GENERAL = "fon_genel_bilgiler"
 TABLE_ALLOCATION = "fon_dagilim_bilgileri"
@@ -45,7 +45,7 @@ def save_full_snapshot(
 
 
 def load_from_sqlite(db_path: str | Path) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Load besFundLens source tables from SQLite."""
+    """Load turkeyFundLens source tables from SQLite."""
     with connect_sqlite(db_path) as conn:
         df_general = pd.read_sql(f"SELECT * FROM {TABLE_GENERAL}", conn)
         df_allocation = pd.read_sql(f"SELECT * FROM {TABLE_ALLOCATION}", conn)

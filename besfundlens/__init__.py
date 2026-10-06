@@ -24,6 +24,8 @@ from .core.engine import (
     translate_quadrant_name,
 )
 
+from .core.stress import fund_founder, stress_signals
+
 from .classification import (
     AllocationClassifier,
     ClassificationConfig,
@@ -66,6 +68,9 @@ __all__ = [
     "translate_flow_regime",
     "translate_market_scope",
     "translate_quadrant_name",
+    # stress signals
+    "fund_founder",
+    "stress_signals",
     # v2 allocation classification
     "AllocationClassifier",
     "ClassificationConfig",

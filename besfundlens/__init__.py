@@ -1,4 +1,4 @@
-"""besFundLens: analytics engine for Turkish pension funds."""
+"""besFundLens: analytics engine for Turkish pension and securities investment funds."""
 
 from .core.engine import (
     BUILD_VERSION,
@@ -14,6 +14,8 @@ from .core.engine import (
     save_markdown_report,
     print_build_info,
     resolve_lookback_intervals,
+    slice_date_window,
+    unpublished_funds,
     translate_archetype,
     translate_asset_group,
     translate_currency_exposure,
@@ -56,6 +58,8 @@ __all__ = [
     "save_markdown_report",
     "print_build_info",
     "resolve_lookback_intervals",
+    "slice_date_window",
+    "unpublished_funds",
     "translate_archetype",
     "translate_asset_group",
     "translate_currency_exposure",

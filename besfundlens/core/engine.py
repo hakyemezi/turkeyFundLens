@@ -77,10 +77,49 @@ def print_build_info():
 # 3. Data Cleaning and Main Panel
 # ============================================================
 
+def unpublished_rows(df_genel: pd.DataFrame) -> pd.Series:
+    """
+    Rows where TEFAS lists a fund but publishes no valuation for it.
+
+    Two shapes turn up, both in securities investment funds and neither so far
+    in BES data:
+
+    - a price of zero, for a fund that is suspended or being liquidated;
+    - fewer than one unit in circulation, for a fund that has matured or been
+      emptied. TEFAS then shows a placeholder — price 1, 0.01 units, 0.01 TL —
+      and a fall from 55 to 1 would otherwise read as a -98% market move.
+
+    Read as prices, either one turns a fund that stopped into a fund that lost
+    nearly everything, split between market effect and outflow, and a single
+    large fund drags the whole universe's totals with it.
+    """
+    price = pd.to_numeric(df_genel["fiyat"], errors="coerce")
+    units = pd.to_numeric(df_genel["tedPaySayisi"], errors="coerce")
+    return price.le(0) | units.lt(1)
+
+
+def unpublished_funds(df_genel: pd.DataFrame) -> list:
+    """
+    Codes of the funds with at least one unpublished row, largest first.
+
+    Ordered by the most AUM each fund reported anywhere in the frame, since the
+    unpublished rows themselves usually report none.
+    """
+    affected = df_genel.loc[unpublished_rows(df_genel), "fonKodu"]
+    return (
+        df_genel.loc[df_genel["fonKodu"].isin(affected)]
+        .groupby("fonKodu")["portfoyBuyukluk"]
+        .max()
+        .sort_values(ascending=False)
+        .index.tolist()
+    )
+
+
 def prepare_main_panel(
     df_genel: pd.DataFrame,
     df_dagilim: pd.DataFrame,
     verbose: bool = False,
+    include_unpublished: bool = False,
 ):
     """
     df_genel ve df_dagilim tablolarını temizleyip fonKodu + tarih bazlı ana panel oluşturur.
@@ -88,6 +127,11 @@ def prepare_main_panel(
     Not:
     - DB okuma kısmına dokunmuyoruz.
     - Bu fonksiyon DB'den okunan df_genel ve df_dagilim üzerinde çalışır.
+
+    include_unpublished:
+        False (varsayılan) ise değerleme yayımlanmayan satırlar (bkz.
+        ``unpublished_rows``) düşürülür. True ise TEFAS'ın yayımladığı gibi
+        bırakılır: sıfır fiyat −%100 getiri olarak okunur.
     """
     df_genel_clean = df_genel.copy()
     df_dagilim_clean = df_dagilim.copy()
@@ -97,6 +141,16 @@ def prepare_main_panel(
 
     df_genel_clean = df_genel_clean.dropna(axis=1, how="all")
     df_dagilim_clean = df_dagilim_clean.dropna(axis=1, how="all")
+
+    # Days without a real valuation are dropped as unpublished by default, so
+    # a fund that stopped falls out of any window it does not cover rather than
+    # posting a near-total loss. Whether to is the caller's call — the page
+    # asks — so the zeros can also be kept as published. Either way the codes
+    # are kept so the caller can say which funds were affected.
+    unpublished = unpublished_rows(df_genel_clean)
+    affected_funds = unpublished_funds(df_genel_clean)
+    if not include_unpublished:
+        df_genel_clean = df_genel_clean.loc[~unpublished]
 
     id_cols = ["fonKodu", "fonUnvan", "tarih"]
 
@@ -153,6 +207,9 @@ def prepare_main_panel(
         "df_genel_nat_tarih_count": df_genel_clean["tarih"].isna().sum(),
         "df_dagilim_nat_tarih_count": df_dagilim_clean["tarih"].isna().sum(),
         "df_panel_nat_tarih_count": df_panel["tarih"].isna().sum(),
+        "unpublished_row_count": int(unpublished.sum()),
+        "unpublished_funds": affected_funds,
+        "unpublished_rows_dropped": not include_unpublished,
     }
 
     if verbose:
@@ -2950,6 +3007,9 @@ def run_universe_analysis(
         "market_report": market_report,
         "markdown": markdown,
         "lookback_intervals": resolved_lookback,
+        # Funds with a day TEFAS published no valuation for, dropped as missing
+        # unless include_unpublished was set; see prepare_main_panel.
+        "unpublished_funds": panel_diagnostics["unpublished_funds"],
         "classification_df": classification_df,
         "classification_model": (
             classification_result["model"] if classification_result else None
@@ -3052,6 +3112,7 @@ def initialize_engine(
     df_genel_input: pd.DataFrame,
     df_dagilim_input: pd.DataFrame,
     verbose: bool = SHOW_STARTUP_DIAGNOSTICS,
+    include_unpublished: bool = False,
 ) -> dict:
     """
     Initialize besFundLens analytics engine from two source DataFrames.
@@ -3067,6 +3128,10 @@ def initialize_engine(
         ``tarih`` and TEFAS/Fonturkey allocation columns.
     verbose:
         Print data preparation diagnostics.
+    include_unpublished:
+        Keep rows TEFAS lists without a valuation (zero price, or no units in
+        circulation) as published, instead of dropping them as missing days.
+        See :func:`unpublished_rows`.
 
     Returns
     -------
@@ -3090,6 +3155,7 @@ def initialize_engine(
         df_genel=df_genel_input,
         df_dagilim=df_dagilim_input,
         verbose=verbose,
+        include_unpublished=include_unpublished,
     )
 
     asset_meta_df = build_asset_metadata(asset_cols=asset_cols)
@@ -3133,6 +3199,65 @@ def require_initialized() -> None:
         )
 
 
+def slice_date_window(
+    df_genel_input: pd.DataFrame,
+    df_dagilim_input: pd.DataFrame,
+    start_date=None,
+    end_date=None,
+) -> tuple[pd.DataFrame, pd.DataFrame, int]:
+    """
+    Cut both source frames to the days between two dates, inclusive.
+
+    The engine measures over a fund's last N published days. Cutting the data
+    to a window first and then asking for every interval in it turns that into
+    a measurement between two dates, without touching the tested lookback
+    machinery: the first published day on or after ``start_date`` is the base,
+    the last one on or before ``end_date`` is the end, and the DNA snapshot and
+    the classifier read the window rather than whatever came after it.
+
+    A fund that does not cover the whole window gets no record, exactly as a
+    fund with less history than a lookback gets none.
+
+    Returns the two cut frames and the interval count to pass as ``lookback``.
+    Either date may be None to leave that end open.
+    """
+    start = pd.Timestamp(start_date).normalize() if start_date is not None else None
+    end = pd.Timestamp(end_date).normalize() if end_date is not None else None
+
+    if start is not None and end is not None and start > end:
+        raise ValueError(f"start_date {start.date()} is after end_date {end.date()}.")
+
+    def cut(df: pd.DataFrame) -> pd.DataFrame:
+        dates = parse_tarih(df["tarih"]).dt.normalize()
+        keep = dates.notna()
+        if start is not None:
+            keep &= dates >= start
+        if end is not None:
+            keep &= dates <= end
+        return df.loc[keep].reset_index(drop=True)
+
+    df_general = cut(df_genel_input)
+    df_allocation = cut(df_dagilim_input)
+
+    # Counted the way prepare_main_panel will see them: a day on which no fund
+    # had a real valuation was not published.
+    priced = ~unpublished_rows(df_general)
+    published_days = parse_tarih(df_general.loc[priced, "tarih"]).dt.normalize().nunique()
+
+    # One day is a level, not a change; there is nothing to decompose.
+    if published_days < 2:
+        window = (
+            f"{start.date() if start is not None else '…'} – "
+            f"{end.date() if end is not None else '…'}"
+        )
+        raise ValueError(
+            f"The window {window} holds {published_days} published day(s) in the "
+            "loaded data; at least two are needed to measure a change."
+        )
+
+    return df_general, df_allocation, published_days - 1
+
+
 def run_universe_analysis_from_dataframes(
     df_genel_input: pd.DataFrame,
     df_dagilim_input: pd.DataFrame,
@@ -3143,9 +3268,30 @@ def run_universe_analysis_from_dataframes(
     language: str = DEFAULT_LANGUAGE,
     top_n: int = 10,
     verbose: bool = False,
+    start_date=None,
+    end_date=None,
+    include_unpublished: bool = False,
+    classify: bool = True,
 ) -> dict:
-    """Initialize the engine from DataFrames and run universe analysis."""
-    initialize_engine(df_genel_input, df_dagilim_input, verbose=verbose)
+    """
+    Initialize the engine from DataFrames and run universe analysis.
+
+    Pass ``start_date`` and/or ``end_date`` to measure between two dates rather
+    than over the latest ``lookback``, which is then ignored. See
+    :func:`slice_date_window`. ``include_unpublished`` is passed through to
+    :func:`initialize_engine`.
+    """
+    if start_date is not None or end_date is not None:
+        df_genel_input, df_dagilim_input, lookback = slice_date_window(
+            df_genel_input, df_dagilim_input, start_date, end_date
+        )
+
+    initialize_engine(
+        df_genel_input,
+        df_dagilim_input,
+        verbose=verbose,
+        include_unpublished=include_unpublished,
+    )
     return run_universe_analysis(
         lookback=lookback,
         lookback_intervals=lookback_intervals,
@@ -3153,6 +3299,7 @@ def run_universe_analysis_from_dataframes(
         valid_only=valid_only,
         language=language,
         top_n=top_n,
+        classify=classify,
     )
 
 

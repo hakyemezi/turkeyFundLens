@@ -7,6 +7,8 @@
 > linkleri buraya yönlenir; `import besfundlens` de kullanımdan kaldırma
 > uyarısıyla çalışmaya devam eder.
 
+**Canlı uygulama:** [turkeyfundlens.streamlit.app](https://turkeyfundlens.streamlit.app)
+
 turkeyFundLens, fonların AUM hareketlerini **piyasa etkisi** ve **tahmini yatırımcı akışı** olarak ayrıştırır; portföy DNA'sını haritalar, fonları varlık dağılımına göre sınıflandırır, piyasa-akış rejimlerini belirler ve iki dilli Markdown raporlar üretir.
 
 > Proje iki TEFAS evrenini kapsar: BES / emeklilik fonları (`EMK`) ve menkul kıymet yatırım fonları (`YAT`). Her biri kendi evreni olarak analiz edilir. Fiyat tahmin modeli olmaktan ziyade yeniden kullanılabilir bir analiz motoru olarak tasarlanmıştır.
@@ -215,6 +217,8 @@ görülür, BES verisinde şimdiye kadar görülmedi; web sayfası etkilenen fon
 listeler ve analizi çalıştırmadan önce hangisinin uygulanacağını sorar.
 
 ## Web arayüzü
+
+[turkeyfundlens.streamlit.app](https://turkeyfundlens.streamlit.app) adresinde çalışıyor. Kendiniz çalıştırmak için:
 
 ```bash
 pip install -r requirements.txt

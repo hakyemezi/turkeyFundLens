@@ -7,6 +7,8 @@
 > repository redirect here, and `import besfundlens` still works, with a
 > deprecation warning.
 
+**Live app:** [turkeyfundlens.streamlit.app](https://turkeyfundlens.streamlit.app)
+
 turkeyFundLens decomposes fund AUM movements into **market effect** and **estimated investor flow**, maps portfolio DNA, classifies funds by their asset allocation, identifies market-flow regimes, and generates bilingual Markdown reports.
 
 > The project covers the two TEFAS universes it was built for: BES / pension funds (`EMK`) and securities investment funds (`YAT`, Menkul Kıymet Yatırım Fonları). Each is analysed as its own universe. It is designed as a reusable analytics engine rather than a price-prediction model.
@@ -216,6 +218,8 @@ in securities investment funds, not so far in BES data; the web page lists the
 funds affected and asks which way to go before it runs the analysis.
 
 ## Web interface
+
+Running at [turkeyfundlens.streamlit.app](https://turkeyfundlens.streamlit.app). To run it yourself:
 
 ```bash
 pip install -r requirements.txt

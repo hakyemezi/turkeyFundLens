@@ -63,3 +63,22 @@ def test_today_not_yet_published_is_allowed(monkeypatch):
     monkeypatch.setattr(build, "fetch_tefas_period", fake_period({today}))
     general, _ = build.fetch_strict("YAT", pd.Timestamp("2026-08-12"), today)
     assert len(general) == 2
+
+
+def test_today_is_asked_again_before_it_is_given_up(monkeypatch):
+    """A timeout and an unpublished day both come back empty; retry first."""
+    today = pd.Timestamp("2026-10-12")
+    good = fake_period(set())
+    asked = {"today": 0}
+
+    def flaky_today(chunk_start, chunk_end, config=None, verbose=True):
+        if pd.Timestamp(chunk_start) == today:
+            asked["today"] += 1
+            if asked["today"] == 1:
+                return pd.DataFrame(), pd.DataFrame()
+        return good(chunk_start, chunk_end)
+
+    monkeypatch.setattr(build, "fetch_tefas_period", flaky_today)
+    general, _ = build.fetch_strict("YAT", pd.Timestamp("2026-08-12"), today)
+    assert asked["today"] == 2
+    assert len(general) == 3

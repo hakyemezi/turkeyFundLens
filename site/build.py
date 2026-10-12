@@ -23,6 +23,8 @@ import pickle
 import shutil
 from pathlib import Path
 
+import time
+
 import altair as alt
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -44,7 +46,7 @@ from turkeyfundlens.core.stress import (
     TURN_THRESHOLD,
     stress_signals,
 )
-from turkeyfundlens.data.tefas_client import FetchConfig, fetch_tefas_history
+from turkeyfundlens.data.tefas_client import FetchConfig, fetch_tefas_period, month_chunks
 
 HERE = Path(__file__).resolve().parent
 
@@ -54,6 +56,12 @@ REPO_URL = "https://github.com/hakyemezi/turkeyFundLens"
 
 # Calendar days fetched before the window, for the stress baseline only
 BASELINE_DAYS = 31
+
+# TEFAS times out from GitHub's runners now and then, a whole month at a time.
+# The client's own retries come first; a month that still comes back empty is
+# asked for again this many times, this far apart, before the build gives up.
+CHUNK_ROUNDS = 4
+CHUNK_PAUSE_SECONDS = 60
 
 UNIVERSES = {
     FUND_TYPE_PENSION: {
@@ -200,17 +208,57 @@ def daily_flow_chart(daily: pd.DataFrame, event) -> str:
 # ------------------------------------------------------------------ data
 
 
+def fetch_strict(fund_type: str, start: pd.Timestamp, end: pd.Timestamp):
+    """
+    Every month between start and end, or an error.
+
+    fetch_tefas_history skips a month that keeps failing and carries on, which
+    suits a cache that can be topped up later but not a public page. The first
+    build on GitHub lost the month before the window that way, and the site
+    said no stress event had happened and showed a fund that had stopped
+    dealing as an ordinary one. Here a missing month is asked for again, and
+    if it still does not come, the build fails: Pages keeps serving the last
+    good site, and GitHub mails the owner.
+
+    Only a month made of today alone may come back empty: TEFAS may not have
+    published the day yet when the build runs.
+    """
+    config = FetchConfig(fund_type=fund_type)
+    general, allocation = [], []
+    for chunk_start, chunk_end in month_chunks(start, end):
+        for attempt in range(1, CHUNK_ROUNDS + 1):
+            df_general, df_allocation = fetch_tefas_period(chunk_start, chunk_end, config=config)
+            if not df_general.empty and not df_allocation.empty:
+                break
+            if chunk_start == chunk_end == end:
+                print(f"  {fund_type} {end.date()}: nothing published yet; building without it")
+                break
+            if attempt == CHUNK_ROUNDS:
+                raise RuntimeError(
+                    f"TEFAS gave nothing for {fund_type} {chunk_start.date()} – "
+                    f"{chunk_end.date()} after {CHUNK_ROUNDS} rounds; not building from "
+                    "a partial month."
+                )
+            print(f"  {fund_type} {chunk_start.date()} – {chunk_end.date()} empty; "
+                  f"asking again in {CHUNK_PAUSE_SECONDS}s ({attempt}/{CHUNK_ROUNDS})")
+            time.sleep(CHUNK_PAUSE_SECONDS)
+        general.append(df_general)
+        allocation.append(df_allocation)
+        time.sleep(config.success_sleep)
+
+    frames = [frame for frame in general if not frame.empty]
+    return (
+        pd.concat(frames, ignore_index=True).drop_duplicates(),
+        pd.concat([f for f in allocation if not f.empty], ignore_index=True).drop_duplicates(),
+    )
+
+
 def fetch(fund_type: str, start: pd.Timestamp, end: pd.Timestamp, cache_dir: Path | None):
     """The window plus its baseline, from TEFAS, or from a local pickle while developing."""
     cached = cache_dir / f"{fund_type}_{start.date()}_{end.date()}.pkl" if cache_dir else None
     if cached and cached.exists():
         return pickle.loads(cached.read_bytes())
-    frames = fetch_tefas_history(
-        start - pd.Timedelta(days=BASELINE_DAYS),
-        end,
-        config=FetchConfig(fund_type=fund_type),
-        verbose=True,
-    )
+    frames = fetch_strict(fund_type, start - pd.Timedelta(days=BASELINE_DAYS), end)
     if cached:
         cached.parent.mkdir(parents=True, exist_ok=True)
         cached.write_bytes(pickle.dumps(frames))

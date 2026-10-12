@@ -26,8 +26,11 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -e ".[site]"
+      # Held to the major versions the build was tested with locally
+      - run: pip install -e ".[site]" "pandas<3" "altair<6"
       - run: python site/build.py --out _site
+        env:
+          PYTHONUNBUFFERED: "1"   # fetch progress in the log as it happens
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

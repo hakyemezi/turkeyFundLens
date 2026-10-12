@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}turkeyFundLens — Türk fonlarında piyasa etkisi ve yatırımcı akışı{% endblock %}
+{% block content %}
+<h1>Fonu piyasa mı taşıdı, yatırımcılar mı?</h1>
+<p class="lead">Türk emeklilik ve menkul kıymet yatırım fonlarında büyüklük değişimini iki parçaya ayırır: piyasanın fondaki parayı ne kadar oynattığı ve yatırımcıların ne kadar para koyup çektiği. Her iş günü akşamı TEFAS verisiyle, son bir ay için güncellenir.</p>
+
+<section class="search">
+  <label for="q">Fon ara</label>
+  <input id="q" type="search" placeholder="Fon kodu ya da adı" autocomplete="off" data-index="{{ root }}fonlar.json" data-root="{{ root }}">
+  <ul id="results"></ul>
+</section>
+
+<div class="cards">
+{% for u in universes %}
+  <section class="card">
+    <h2><a href="{{ root }}{{ u.info.slug }}.html">{{ u.info.name }}</a></h2>
+    <p class="meta">Veri {{ u.last_day|day }} tarihine kadar · {{ u.summary.fund_count|count }} fon · {{ u.first_day|day }} tarihinden itibaren {{ u.intervals }} işlem günü</p>
+    <dl class="kpis">
+      <div><dt>Toplam büyüklük</dt><dd>{{ u.summary.total_end_aum|money }}</dd></div>
+      <div><dt>Büyüklük değişimi</dt><dd>{{ (u.summary.total_end_aum / u.summary.total_start_aum - 1)|pct }}</dd></div>
+      <div><dt>Piyasa etkisi</dt><dd>{{ u.summary.total_market_effect|money }}</dd></div>
+      <div><dt>Tahmini net akış</dt><dd>{{ u.summary.total_net_flow|money }}</dd></div>
+    </dl>
+    {% if u.event %}
+    <p class="event">Olay günü: <strong>{{ u.event|day }}</strong> — {{ u.event_label }}.</p>
+    {% else %}
+    <p class="event">Bu aralıkta öne çıkan bir stres olayı tespit edilmedi.</p>
+    {% endif %}
+    <p>{{ u.frozen|length }} fon alım-satımı durmuş görünüyor · {{ u.unpublished|length }} fon değerleme yayımlamadı · {{ u.turned|length }} fon girişten çıkışa döndü</p>
+    <p><a href="{{ root }}{{ u.info.slug }}.html">Ayrıntılar →</a></p>
+  </section>
+{% endfor %}
+</div>
+
+<section>
+  <h2>Nasıl okunur?</h2>
+  <p>Bir fonun büyüklüğü iki nedenle değişir: elindeki varlıkların fiyatı değişir, ya da yatırımcılar para koyar veya çeker. Ay sonu toplamı bu ikisini karıştırır; bir fon yatırımcı kaybederken büyüyebilir, yatırımcı kazanırken küçülebilir. Buradaki sayfalar ikisini ayrı gösterir, ayrıca dönem toplamının gizleyebileceği günlük seyri ve tüm fon evrenini aynı anda etkileyen olayları da.</p>
+  <p>Farklı tarih aralıkları ve etkileşimli grafikler için <a href="{{ app_url }}">uygulamayı</a> kullanın.</p>
+</section>
+{% endblock %}

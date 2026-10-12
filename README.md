@@ -7,7 +7,7 @@
 > repository redirect here, and `import besfundlens` still works, with a
 > deprecation warning.
 
-**Live app:** [turkeyfundlens.streamlit.app](https://turkeyfundlens.streamlit.app)
+**Live app:** [turkeyfundlens.streamlit.app](https://turkeyfundlens.streamlit.app) · **Daily site:** [hakyemezi.github.io/turkeyFundLens](https://hakyemezi.github.io/turkeyFundLens/)
 
 turkeyFundLens decomposes fund AUM movements into **market effect** and **estimated investor flow**, maps portfolio DNA, classifies funds by their asset allocation, identifies market-flow regimes, and generates bilingual Markdown reports.
 
@@ -265,6 +265,20 @@ measured against; the analysis itself still covers only the window.
 
 For anything longer than a year, run it locally and point it at a SQLite cache
 built with `scripts/fetch_history.py`. The sidebar switches between the two.
+
+## Daily static site
+
+`site/build.py` writes a plain HTML site in Turkish — a page per universe and
+one per fund, with the market/flow split, the stress signals and the daily flow
+chart — and `.github/workflows/site.yml` rebuilds it every working evening and
+publishes it to GitHub Pages. Unlike the app it needs no server, never sleeps,
+and can be read by search engines. It always covers the last month; for other
+windows, use the app.
+
+```bash
+pip install -e ".[site]"
+python site/build.py --out _site
+```
 
 ## Data ingestion strategy
 

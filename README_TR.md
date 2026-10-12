@@ -7,7 +7,7 @@
 > linkleri buraya yönlenir; `import besfundlens` de kullanımdan kaldırma
 > uyarısıyla çalışmaya devam eder.
 
-**Canlı uygulama:** [turkeyfundlens.streamlit.app](https://turkeyfundlens.streamlit.app)
+**Canlı uygulama:** [turkeyfundlens.streamlit.app](https://turkeyfundlens.streamlit.app) · **Günlük site:** [hakyemezi.github.io/turkeyFundLens](https://hakyemezi.github.io/turkeyFundLens/)
 
 turkeyFundLens, fonların AUM hareketlerini **piyasa etkisi** ve **tahmini yatırımcı akışı** olarak ayrıştırır; portföy DNA'sını haritalar, fonları varlık dağılımına göre sınıflandırır, piyasa-akış rejimlerini belirler ve iki dilli Markdown raporlar üretir.
 
@@ -264,6 +264,20 @@ ay öncesine de uzanır; analizin kendisi yine yalnızca seçilen aralığı kap
 Bir yıldan uzun analizler için projeyi kendi bilgisayarınızda çalıştırın ve
 `scripts/fetch_history.py` ile oluşturduğunuz SQLite cache'i kullanın. Kenar
 çubuğu ikisi arasında geçiş yapar.
+
+## Günlük statik site
+
+`site/build.py` Türkçe düz HTML bir site üretir: her evren ve her fon için,
+piyasa/akış ayrımı, stres sinyalleri ve günlük akış grafiğiyle birer sayfa.
+`.github/workflows/site.yml` her iş günü akşamı siteyi yeniden derleyip GitHub
+Pages'te yayımlar. Uygulamanın aksine sunucu gerektirmez, uykuya geçmez ve arama
+motorlarınca okunabilir. Her zaman son bir ayı kapsar; başka aralıklar için
+uygulamayı kullanın.
+
+```bash
+pip install -e ".[site]"
+python site/build.py --out _site
+```
 
 ## Veri alma stratejisi
 

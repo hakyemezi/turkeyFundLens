@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ f.code }} — {{ f.name }}: piyasa etkisi ve yatırımcı akışı | turkeyFundLens{% endblock %}
+{% block description %}{{ f.name }} ({{ f.code }}): {{ u.first_day|day }} – {{ u.last_day|day }} arasında büyüklük değişimi, piyasa etkisi, tahmini yatırımcı akışı ve günlük akış grafiği.{% endblock %}
+{% block content %}
+{% set r = f.row %}
+<p class="crumbs"><a href="{{ root }}index.html">Ana sayfa</a> › <a href="{{ root }}{{ u.info.slug }}.html">{{ u.info.name }}</a></p>
+<h1>{{ f.code }} — {{ f.name }}</h1>
+<p class="meta">Kurucu: {{ f.founder }} · {{ u.info.name }} · Veri {{ u.last_day|day }} tarihine kadar</p>
+
+{% if f.base.unpublished %}
+<p class="warn">Bu fon {{ u.first_day|day }} – {{ u.last_day|day }} aralığının bazı günlerinde değerleme yayımlamadı: sıfır fiyat ya da dolaşımda payı olmayan yer tutucu bir kayıtla listelendi. TEFAS bunu işlemleri durdurulan, tasfiye edilen ya da vadesi dolan fonlar için gösterir. O günler yayımlanmamış sayıldığından fon bu dönemin toplamlarına girmedi. Resmî durum için KAP’a bakınız.</p>
+{% endif %}
+{% if f.base.frozen %}
+<p class="warn">{% if f.base.frozen_ongoing %}Dolaşımdaki pay ve kişi sayısı {{ f.base.frozen_since|day }} tarihinden beri ({{ f.base.frozen_days|count }} yayın günü) değişmiyor, fiyat ise değişiyor.{% else %}Dolaşımdaki pay ve kişi sayısı {{ f.base.frozen_since|day }} – {{ f.base.frozen_until|day }} arasında ({{ f.base.frozen_days|count }} yayın günü) değişmedi, fiyat ise değişti.{% endif %} Veriye göre fon bu sürede alım-satıma kapanmış görünüyor; o sırada akışın sıfır çıkması hareket olmamasından değil, hareket edilememesinden olabilir. Bu bir çıkarımdır; resmî durum için KAP’a bakınız.</p>
+{% endif %}
+
+{% if r %}
+<dl class="kpis">
+  <div><dt>Başlangıç büyüklüğü</dt><dd>{{ r.start_aum|money }}</dd></div>
+  <div><dt>Son büyüklük</dt><dd>{{ r.end_aum|money }}</dd></div>
+  <div><dt>Getiri</dt><dd>{{ r.cumulative_return|pct }}</dd></div>
+  <div><dt>Büyüklük değişimi</dt><dd>{{ r.aum_change_pct|pct }}</dd></div>
+  <div><dt>Piyasa etkisi</dt><dd>{{ r.market_effect_pct|pct }}<small>{{ r.total_market_effect|money }}</small></dd></div>
+  <div><dt>Tahmini yatırımcı akışı</dt><dd>{{ r.flow_pct|pct }}<small>{{ r.total_net_flow|money }}</small></dd></div>
+  <div><dt>{{ u.info.holders }} sayısı</dt><dd>{{ r.end_participants|count }}</dd></div>
+  <div><dt>{{ u.info.holders }} değişimi</dt><dd>{{ r.participant_change_pct|pct }}<small>{{ r.participant_change|count }}</small></dd></div>
+</dl>
+<p>{{ r.archetype }} · {{ r.market_flow_quadrant }} · {{ r.flow_regime }}</p>
+<p class="note">Büyüklük değişimi, piyasa etkisi ile tahmini yatırımcı akışının toplamıdır. Bir fon yatırımcı kaybederken büyüyebilir ya da yatırımcı kazanırken küçülebilir; bu ayrımın amacı o farkı görmektir. Oranlar {{ u.first_day|day }} tarihindeki büyüklüğe göredir.</p>
+{% if u.event and r.flow_before is present %}
+<dl class="kpis two">
+  <div><dt>Olay öncesi akış</dt><dd>{{ r.flow_before|pct }}</dd></div>
+  <div><dt>Olay sonrası akış</dt><dd>{{ r.flow_after|pct }}</dd></div>
+</dl>
+<p class="note">Olay günü {{ u.event|day }} ({{ u.event_label }}); olay günü sonrasına sayılır.</p>
+{% endif %}
+{% elif not f.base.unpublished %}
+<p class="note">Bu fon dönem analizine girmedi: aralığın tamamında yayımlanmış verisi yok ya da aralık başındaki büyüklüğü {{ min_aum }}’nin altında.</p>
+{% endif %}
+
+<section>
+  <h2>Gün gün yatırımcı akışı</h2>
+  <div class="chart"><script type="application/json">{{ f.flow_chart|safe }}</script></div>
+  <p class="note">Her çubuk bir günün tahmini yatırımcı akışıdır, bir önceki günün büyüklüğüne oranla.{% if f.event %} Kesikli çizgi evren genelindeki olay gününü gösterir.{% endif %} Dönem toplamı bir kaçışı gizleyebilir: girişlerle büyüyüp bir günde büyük çıkış yaşayan bir fon toplamda yine giriş gösterebilir.</p>
+</section>
+
+<p>Başka tarih aralıkları için <a href="{{ app_url }}">etkileşimli uygulamayı</a> kullanın.</p>
+{% endblock %}

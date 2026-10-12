@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{{ u.info.name }} — son bir ayda piyasa etkisi ve yatırımcı akışı | turkeyFundLens{% endblock %}
+{% block description %}{{ u.info.name }}: {{ u.first_day|day }} – {{ u.last_day|day }} arasında {{ u.summary.fund_count|count }} fonun büyüklük değişimi, piyasa etkisi, tahmini yatırımcı akışı ve stres sinyalleri.{% endblock %}
+{% macro fund_link(code) %}<a href="{{ root }}fon/{{ code }}.html">{{ code }}</a>{% endmacro %}
+{% block content %}
+<h1>{{ u.info.name }}</h1>
+<p class="meta">Veri {{ u.last_day|day }} tarihine kadar · {{ u.summary.fund_count|count }} fon · {{ u.first_day|day }} tarihinden itibaren {{ u.intervals }} işlem günü</p>
+
+<dl class="kpis">
+  <div><dt>Toplam büyüklük</dt><dd>{{ u.summary.total_end_aum|money }}</dd></div>
+  <div><dt>Büyüklük değişimi</dt><dd>{{ (u.summary.total_end_aum / u.summary.total_start_aum - 1)|pct }}</dd></div>
+  <div><dt>Piyasa etkisi</dt><dd>{{ u.summary.total_market_effect|money }}</dd></div>
+  <div><dt>Tahmini net akış</dt><dd>{{ u.summary.total_net_flow|money }}</dd></div>
+</dl>
+
+<section>
+  <h2>Stres sinyalleri</h2>
+  {% if u.event %}
+  <p class="event">Olay günü: <strong>{{ u.event|day }}</strong> — {{ u.event_label }}.</p>
+  {% if u.event_at_start %}<p class="note">Olay aralığın ilk gününe denk geliyor; olay öncesi ile karşılaştırma bu aralıkta yapılamıyor.</p>{% endif %}
+  {% else %}
+  <p class="event">Bu aralıkta öne çıkan bir stres olayı tespit edilmedi.</p>
+  {% endif %}
+  <div class="chart"><script type="application/json">{{ u.stress_chart|safe }}</script></div>
+  <p class="note">Her gün, fiyatı o gün en az %{{ drop_pct }} düşen fonların ve yatırımcılarının en az %{{ outflow_pct }} çıkış yaptığı fonların oranı. Olay günü, iki oranın da önceki haftalardan belirgin biçimde koptuğu gündür ve her gün veriden yeniden hesaplanır; yalnızca fiyat oranının koptuğu günler “çıkış dalgası gelmedi” diye ayrılır. Geriye dönük bir tespittir, tahmin değildir.</p>
+</section>
+
+{% if u.founders %}
+<section>
+  <h2>Kurucuya göre</h2>
+  <table>
+    <thead><tr><th>Kurucu</th><th class="n">Fon</th><th class="n">Büyüklük</th><th class="n">Etkilenen büyüklük</th><th class="n">Duran</th><th class="n">Değerlemesiz</th><th class="n">Dönen</th><th class="n">Olay sonrası akış</th></tr></thead>
+    <tbody>
+    {% for r in u.founders %}
+      <tr><td>{{ r.founder }}</td><td class="n">{{ r.funds|count }}</td><td class="n">{{ r.start_aum|money }}</td><td class="n">{{ r.stressed_aum|money }}</td><td class="n">{{ r.frozen|count }}</td><td class="n">{{ r.unpublished|count }}</td><td class="n">{{ r.turned|count }}</td><td class="n">{{ r.flow_after|pct }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="note">Etkilenen büyüklük, kurucunun aralık başında alım-satımı durmuş görünen ya da değerleme yayımlamayan fonlarda tuttuğu tutardır. Yalnızca bu sinyallerden en az biri olan kurucular listelenir.</p>
+</section>
+{% endif %}
+
+{% if u.frozen %}
+<section>
+  <h2>Alım-satımı durmuş görünen fonlar</h2>
+  <table>
+    <thead><tr><th>Kod</th><th>Fon</th><th>Başlangıç</th><th class="n">Gün</th><th>Sürüyor</th><th class="n">Büyüklük</th></tr></thead>
+    <tbody>
+    {% for r in u.frozen %}
+      <tr><td>{{ fund_link(r.fonKodu) }}</td><td>{{ r.fonUnvan }}</td><td>{{ r.frozen_since|day }}</td><td class="n">{{ r.frozen_days|count }}</td><td>{{ "evet" if r.frozen_ongoing else "hayır" }}</td><td class="n">{{ r.start_aum|money }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="note">Dolaşımdaki pay ve kişi sayısı en az {{ freeze_days }} yayın günü üst üste değişmemiş, fiyat ise değişmeye devam etmiş; fon da öncesinde günlerin çoğunda işlem görüyormuş. Alım-satıma kapanmış bir fon veride böyle görünür. Bu bir çıkarımdır; resmî durum için KAP’a bakınız.</p>
+</section>
+{% endif %}
+
+{% if u.unpublished %}
+<section>
+  <h2>Değerleme yayımlamayan fonlar</h2>
+  <p>{% for r in u.unpublished %}{{ fund_link(r.fonKodu) }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+  <p class="note">Bu fonlar aralığın bazı günlerinde sıfır fiyat ya da dolaşımda payı olmayan yer tutucu kayıtla listelendi; TEFAS bunu işlemleri durdurulan, tasfiye edilen ya da vadesi dolan fonlar için gösterir. O günler yayımlanmamış sayıldığından bu fonlar dönem toplamlarına girmez.</p>
+</section>
+{% endif %}
+
+{% if u.turned %}
+<section>
+  <h2>Olay çevresinde girişten çıkışa dönen fonlar</h2>
+  <table>
+    <thead><tr><th>Kod</th><th>Fon</th><th class="n">Olay öncesi akış</th><th class="n">Olay sonrası akış</th><th class="n">Büyüklük</th></tr></thead>
+    <tbody>
+    {% for r in u.turned %}
+      <tr><td>{{ fund_link(r.fonKodu) }}</td><td>{{ r.fonUnvan }}</td><td class="n">{{ r.flow_before|pct }}</td><td class="n">{{ r.flow_after|pct }}</td><td class="n">{{ r.start_aum|money }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="note">Olaydan önce en az %{{ turn_pct }} giriş, sonra en az %{{ turn_pct }} çıkış; ikisi de fonun o andaki büyüklüğüne oranla.</p>
+</section>
+{% endif %}
+
+<section class="two">
+  <div>
+    <h2>En çok giriş</h2>
+    <table>
+      <thead><tr><th>Kod</th><th class="n">Net akış</th><th class="n">Akış %</th></tr></thead>
+      <tbody>{% for r in u.inflows %}<tr><td>{{ fund_link(r.fonKodu) }}</td><td class="n">{{ r.total_net_flow|money }}</td><td class="n">{{ r.flow_pct|pct }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  <div>
+    <h2>En çok çıkış</h2>
+    <table>
+      <thead><tr><th>Kod</th><th class="n">Net akış</th><th class="n">Akış %</th></tr></thead>
+      <tbody>{% for r in u.outflows %}<tr><td>{{ fund_link(r.fonKodu) }}</td><td class="n">{{ r.total_net_flow|money }}</td><td class="n">{{ r.flow_pct|pct }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Tüm fonlar</h2>
+  <table class="all">
+    <thead><tr><th>Kod</th><th>Fon</th><th class="n">Büyüklük</th><th class="n">Getiri</th><th class="n">Piyasa etkisi</th><th class="n">Yatırımcı akışı</th></tr></thead>
+    <tbody>
+    {% for r in u.all_funds %}
+      <tr><td>{{ fund_link(r.fonKodu) }}</td><td>{{ r.fonUnvan }}</td><td class="n">{{ r.end_aum|money }}</td><td class="n">{{ r.cumulative_return|pct }}</td><td class="n">{{ r.market_effect_pct|pct }}</td><td class="n">{{ r.flow_pct|pct }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="note">Aralığın tamamında verisi olan ve başlangıçta en az {{ min_aum }} büyüklüğündeki fonlar. Oranlar aralık başındaki büyüklüğe göredir.</p>
+</section>
+{% endblock %}

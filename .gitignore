@@ -15,6 +15,7 @@ build/
 .cache/
 models/
 reports/
+_site/
 
 # Local staging snapshots, kept out of the repository
 UAT/

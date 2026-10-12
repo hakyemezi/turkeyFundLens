@@ -311,9 +311,9 @@ Bu proje, orijinal araştırma scriptlerinde kullanılan herkese açık fon veri
 
 ## Teşekkür / Not
 
-Bu proje **İlyas Hakyemez** tarafından geliştirilmiş; kodlama, refactoring ve dokümantasyon aşamalarında ChatGPT'den yapay zekâ destekli geliştirme yardımı alınmıştır.
+Bu proje **İlyas Hakyemez** tarafından geliştirilmiş; kodlama, refactoring ve dokümantasyon aşamalarında ChatGPT ve Claude'dan yapay zekâ destekli geliştirme yardımı alınmıştır.
 
-Proje fikri, finansal analiz mantığı, veri doğrulama süreci, testler, yorumlama çerçevesi ve ürün yönü proje sahibi tarafından belirlenmiş ve gözden geçirilmiştir. Yapay zekâ desteği; kod yapısının düzenlenmesi, modülerleştirme, iki dilli raporlama ve GitHub repo hazırlığı süreçlerinde yardımcı geliştirme aracı olarak kullanılmıştır.
+Proje fikri, finansal analiz mantığı, veri doğrulama süreci, testler, yorumlama çerçevesi ve ürün yönü proje sahibi tarafından belirlenmiş ve gözden geçirilmiştir. Yapay zekâ desteği; kodun yazılması ve düzenlenmesi, modülerleştirme, testler, iki dilli raporlama ve GitHub repo hazırlığı süreçlerinde geliştirme aracı olarak kullanılmıştır.
 
 ## Uyarı
 

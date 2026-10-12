@@ -312,9 +312,9 @@ This project relies on publicly accessible fund data endpoints used in the origi
 
 ## Acknowledgements
 
-This project was developed by **İlyas Hakyemez** with AI-assisted coding, refactoring, and documentation support from ChatGPT.
+This project was developed by **İlyas Hakyemez** with AI-assisted coding, refactoring, and documentation support from ChatGPT and Claude.
 
-The project idea, financial domain logic, data validation, testing, interpretation framework, and product direction were defined and reviewed by the author. AI assistance was used as a development support tool for code structuring, modularization, bilingual reporting, and repository preparation.
+The project idea, financial domain logic, data validation, testing, interpretation framework, and product direction were defined and reviewed by the author. AI assistance was used as a development tool for writing and structuring code, modularization, tests, bilingual reporting, and repository preparation.
 
 ## Disclaimer
 

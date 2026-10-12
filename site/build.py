@@ -221,7 +221,9 @@ def fetch_strict(fund_type: str, start: pd.Timestamp, end: pd.Timestamp):
     good site, and GitHub mails the owner.
 
     Only a month made of today alone may come back empty: TEFAS may not have
-    published the day yet when the build runs.
+    published the day yet when the build runs. It is asked for the same number
+    of times first, since an empty answer and a timeout look alike from here,
+    and the second build on GitHub lost a published day to a timeout.
     """
     config = FetchConfig(fund_type=fund_type)
     general, allocation = [], []
@@ -230,10 +232,10 @@ def fetch_strict(fund_type: str, start: pd.Timestamp, end: pd.Timestamp):
             df_general, df_allocation = fetch_tefas_period(chunk_start, chunk_end, config=config)
             if not df_general.empty and not df_allocation.empty:
                 break
-            if chunk_start == chunk_end == end:
-                print(f"  {fund_type} {end.date()}: nothing published yet; building without it")
-                break
             if attempt == CHUNK_ROUNDS:
+                if chunk_start == chunk_end == end:
+                    print(f"  {fund_type} {end.date()}: still nothing; taking it as not published yet")
+                    break
                 raise RuntimeError(
                     f"TEFAS gave nothing for {fund_type} {chunk_start.date()} – "
                     f"{chunk_end.date()} after {CHUNK_ROUNDS} rounds; not building from "

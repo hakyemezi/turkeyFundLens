@@ -1,11 +1,12 @@
 # Rebuilds the static site from TEFAS every working evening and publishes it to
 # GitHub Pages. TEFAS publishes the day's prices in the evening, so the run is
-# set after that; GitHub may start scheduled runs some minutes late.
+# set after that. GitHub starts scheduled runs late, and under load may drop
+# them, most of all on the hour and the half hour; hence the odd minute.
 name: Site
 
 on:
   schedule:
-    - cron: "30 19 * * 1-5"   # 22:30 in Istanbul, Monday to Friday
+    - cron: "43 19 * * 1-5"   # 22:43 in Istanbul, Monday to Friday
   workflow_dispatch:
 
 permissions:

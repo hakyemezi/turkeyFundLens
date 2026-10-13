@@ -1,5 +1,15 @@
 {% extends "base.html" %}
 {% block title %}turkeyFundLens — Türk fonlarında piyasa etkisi ve yatırımcı akışı{% endblock %}
+{% block head %}
+<script type="application/ld+json">{{ {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "turkeyFundLens",
+  "url": base_url,
+  "inLanguage": "tr",
+  "description": "Türk emeklilik ve yatırım fonlarında büyüklük değişimini piyasa etkisi ve tahmini yatırımcı akışı olarak ayıran günlük analiz."
+}|tojson }}</script>
+{% endblock %}
 {% block content %}
 <h1>Fonu piyasa mı taşıdı, yatırımcılar mı?</h1>
 <p class="lead">Türk emeklilik ve menkul kıymet yatırım fonlarında büyüklük değişimini iki parçaya ayırır: piyasanın fondaki parayı ne kadar oynattığı ve yatırımcıların ne kadar para koyup çektiği. Her iş günü akşamı TEFAS verisiyle, son bir ay için güncellenir.</p>
@@ -27,10 +37,23 @@
     <p class="event">Bu aralıkta öne çıkan bir stres olayı tespit edilmedi.</p>
     {% endif %}
     <p>{{ u.frozen|length }} fon alım-satımı durmuş görünüyor · {{ u.unpublished|length }} fon değerleme yayımlamadı · {{ u.turned|length }} fon girişten çıkışa döndü</p>
-    <p><a href="{{ root }}{{ u.info.slug }}.html">Ayrıntılar →</a></p>
+    <p><a href="{{ root }}{{ u.info.slug }}.html">Tüm {{ u.info.plain }} →</a> · <a href="{{ root }}{{ u.info.slug }}-para-akisi.html">En çok para girişi ve çıkışı →</a></p>
   </section>
 {% endfor %}
 </div>
+
+<section>
+  <h2>Başka nereden bakılır?</h2>
+  <ul class="links">
+    <li><a href="{{ root }}kurucular.html">Kuruculara göre</a> — her portföy yönetim ve emeklilik şirketinin fonları, toplam büyüklüğü ve net akışı.</li>
+    {% for u in universes %}
+    <li><a href="{{ root }}{{ u.info.slug }}-para-akisi.html">En çok para girişi ve çıkışı olan {{ u.info.plain }}</a> — son bir ayda ilk {{ flow_list_length }}.</li>
+    {% endfor %}
+    {% if any_stopped %}
+    <li><a href="{{ root }}alim-satimi-duran-fonlar.html">Alım-satımı durmuş görünen fonlar</a> — pay ve kişi sayısı günlerdir değişmeyen ya da değerleme yayımlamayan fonlar.</li>
+    {% endif %}
+  </ul>
+</section>
 
 <section>
   <h2>Nasıl okunur?</h2>

@@ -1,11 +1,12 @@
 {% extends "base.html" %}
-{% block title %}{{ f.code }} — {{ f.name }}: piyasa etkisi ve yatırımcı akışı | turkeyFundLens{% endblock %}
-{% block description %}{{ f.name }} ({{ f.code }}): {{ u.first_day|day }} – {{ u.last_day|day }} arasında büyüklük değişimi, piyasa etkisi, tahmini yatırımcı akışı ve günlük akış grafiği.{% endblock %}
+{% from "_macros.html" import crumbs %}
+{% block title %}{{ f.code }} — {{ f.name }}: getiri, piyasa etkisi ve para girişi/çıkışı | turkeyFundLens{% endblock %}
+{% block description %}{{ f.name }} ({{ f.code }}): {{ u.first_day|day }} – {{ u.last_day|day }} arasında getiri, büyüklük değişimi, piyasa etkisi, tahmini para girişi/çıkışı ve günlük akış grafiği.{% endblock %}
 {% block content %}
 {% set r = f.row %}
-<p class="crumbs"><a href="{{ root }}index.html">Ana sayfa</a> › <a href="{{ root }}{{ u.info.slug }}.html">{{ u.info.name }}</a></p>
+{{ crumbs([("Ana sayfa", "index.html"), (u.info.name, u.info.slug ~ ".html"), (f.founder, "kurucu/" ~ f.founder_slug ~ ".html"), (f.code, none)], root, base_url) }}
 <h1>{{ f.code }} — {{ f.name }}</h1>
-<p class="meta">Kurucu: {{ f.founder }} · {{ u.info.name }} · Veri {{ u.last_day|day }} tarihine kadar</p>
+<p class="meta">Kurucu: <a href="{{ root }}kurucu/{{ f.founder_slug }}.html">{{ f.founder }}</a> · {{ u.info.name }} · Veri {{ u.last_day|day }} tarihine kadar</p>
 
 {% if f.base.unpublished %}
 <p class="warn">Bu fon {{ u.first_day|day }} – {{ u.last_day|day }} aralığının bazı günlerinde değerleme yayımlamadı: sıfır fiyat ya da dolaşımda payı olmayan yer tutucu bir kayıtla listelendi. TEFAS bunu işlemleri durdurulan, tasfiye edilen ya da vadesi dolan fonlar için gösterir. O günler yayımlanmamış sayıldığından fon bu dönemin toplamlarına girmedi. Resmî durum için KAP’a bakınız.</p>
@@ -15,6 +16,8 @@
 {% endif %}
 
 {% if r %}
+<p class="summary">{{ f.summary|join(" ") }}</p>
+
 <dl class="kpis">
   <div><dt>Başlangıç büyüklüğü</dt><dd>{{ r.start_aum|money }}</dd></div>
   <div><dt>Son büyüklük</dt><dd>{{ r.end_aum|money }}</dd></div>
@@ -38,11 +41,25 @@
 <p class="note">Bu fon dönem analizine girmedi: aralığın tamamında yayımlanmış verisi yok ya da aralık başındaki büyüklüğü {{ min_aum }}’nin altında.</p>
 {% endif %}
 
+{% if f.flow_chart %}
 <section>
-  <h2>Gün gün yatırımcı akışı</h2>
-  <div class="chart"><script type="application/json">{{ f.flow_chart|safe }}</script></div>
+  <h2>{{ f.code }} fonuna gün gün para girişi ve çıkışı</h2>
+  <div class="chart">{{ f.flow_chart|safe }}</div>
   <p class="note">Her çubuk bir günün tahmini yatırımcı akışıdır, bir önceki günün büyüklüğüne oranla.{% if f.event %} Kesikli çizgi evren genelindeki olay gününü gösterir.{% endif %} Dönem toplamı bir kaçışı gizleyebilir: girişlerle büyüyüp bir günde büyük çıkış yaşayan bir fon toplamda yine giriş gösterebilir.</p>
 </section>
+{% endif %}
 
-<p>Başka tarih aralıkları için <a href="{{ app_url }}">etkileşimli uygulamayı</a> kullanın.</p>
+{% if f.similar %}
+<section>
+  <h2>Benzer fonlar</h2>
+  <p class="note">Aynı tipte ({{ r.archetype }}) ve büyüklükçe en yakın fonlar.</p>
+  <ul class="links">
+  {% for s in f.similar %}
+    <li><a href="{{ root }}fon/{{ s.fonKodu }}.html">{{ s.fonKodu }}</a> — {{ s.fonUnvan }}</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<p><a href="{{ root }}kurucu/{{ f.founder_slug }}.html">{{ f.founder }} kurucusunun diğer fonları →</a> · Başka tarih aralıkları için <a href="{{ app_url }}">etkileşimli uygulama</a>.</p>
 {% endblock %}

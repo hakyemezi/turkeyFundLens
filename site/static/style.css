@@ -7,6 +7,9 @@
   --accent: #1f6feb;
   --warn-bg: #fff6e0;
   --warn-line: #f0c36d;
+  --pos: #2e9e83;
+  --neg: #d1495b;
+  --second: #d98200;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -18,6 +21,9 @@
     --accent: #6ea8ff;
     --warn-bg: #2b2414;
     --warn-line: #7a6127;
+    --pos: #45b89b;
+    --neg: #e56b7b;
+    --second: #f0a93a;
   }
 }
 * { box-sizing: border-box; }
@@ -64,7 +70,22 @@ th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line
 th { color: var(--muted); font-weight: 600; }
 td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 section { overflow-x: auto; }
-.chart { width: 100%; min-height: 240px; margin: 8px 0; }
+.chart { width: 100%; max-width: 760px; margin: 8px 0; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart .ax { fill: var(--muted); font-size: 11px; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .zero { stroke: var(--muted); stroke-width: 1; }
+.chart .pos { fill: var(--pos); }
+.chart .neg { fill: var(--neg); }
+.chart .ev { stroke: var(--neg); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.chart .s0 { stroke: var(--accent); stroke-width: 2; fill: none; }
+.chart .s1 { stroke: var(--second); stroke-width: 2; fill: none; }
+.chart .s0d { fill: var(--accent); }
+.chart .s1d { fill: var(--second); }
+.summary { font-size: 1.02rem; max-width: 52em; }
+.links { padding-left: 1.1em; max-width: 52em; }
+.links li { margin: 4px 0; }
+h3 { font-size: 1.02rem; margin: 1.2em 0 0.4em; }
 .search { margin: 18px 0; }
 .search label { display: block; font-weight: 600; margin-bottom: 4px; }
 .search input {

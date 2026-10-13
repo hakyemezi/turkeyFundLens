@@ -1,0 +1,13 @@
+{# Breadcrumbs, shown to the reader and given to search engines as BreadcrumbList #}
+{% macro crumbs(items, root, base_url) %}
+<p class="crumbs">{% for name, href in items %}{% if href is not none and not loop.last %}<a href="{{ root }}{{ href }}">{{ name }}</a> › {% else %}{{ name }}{% endif %}{% endfor %}</p>
+<script type="application/ld+json">{{ {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": breadcrumb_items(items, base_url)
+}|tojson }}</script>
+{% endmacro %}
+
+{% macro fund_link(code, root) %}<a href="{{ root }}fon/{{ code }}.html">{{ code }}</a>{% endmacro %}
+
+{% macro status(f) %}{% if f.unpublished %}değerleme yok{% elif f.frozen and f.frozen_ongoing %}alım-satım durmuş görünüyor{% elif f.frozen %}bir süre durmuş görünüyor{% endif %}{% endmacro %}

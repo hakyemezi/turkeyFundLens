@@ -25,7 +25,7 @@ dev = ["pytest>=8.0"]
 # because that is the file Streamlit Cloud reads.
 app = ["streamlit>=1.30"]
 # The static site in site/, built nightly by .github/workflows/site.yml
-site = ["altair>=5", "jinja2>=3"]
+site = ["jinja2>=3"]
 
 [tool.setuptools.packages.find]
 where = ["."]

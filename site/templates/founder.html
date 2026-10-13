@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_macros.html" import crumbs, status %}
+{% block title %}{{ k.name }} fonları: büyüklük, getiri ve para girişi/çıkışı | turkeyFundLens{% endblock %}
+{% block description %}{{ k.name }} kurucusunun {{ k.fund_count|count }} fonu: {{ start|day }} – {{ end|day }} arasında getiri, toplam büyüklük, piyasa etkisi ve tahmini net yatırımcı akışı.{% endblock %}
+{% block content %}
+{{ crumbs([("Ana sayfa", "index.html"), ("Kurucular", "kurucular.html"), (k.name, none)], root, base_url) }}
+<h1>{{ k.name }} fonları</h1>
+<p class="meta">{{ k.universes|join(" · ") }} · {{ k.fund_count|count }} fon · {{ start|day }} – {{ end|day }}</p>
+
+<dl class="kpis">
+  <div><dt>Aralık başında, tüm fonlar</dt><dd>{{ k.start_aum_all|money }}<small>{{ k.fund_count|count }} fon</small></dd></div>
+  <div><dt>Son büyüklük, analiz edilenler</dt><dd>{{ k.end_aum|money }}<small>{{ k.analysed_count|count }} fon</small></dd></div>
+  <div><dt>Piyasa etkisi</dt><dd>{{ k.market_effect|money }}</dd></div>
+  <div><dt>Tahmini net akış</dt><dd>{{ k.net_flow|money }}<small>{{ k.flow_pct|pct }}</small></dd></div>
+</dl>
+{% if k.analysed_count < k.fund_count %}
+<p class="note">{{ k.fund_count - k.analysed_count }} fon dönem analizine girmedi (değerleme yayımlamadı, aralığın tamamında verisi yok ya da başlangıçta {{ min_aum }}’nin altındaydı); bu yüzden iki büyüklük aynı fon kümesini saymıyor ve aradaki fark tek başına bir kayıp ya da çıkış anlamına gelmez.</p>
+{% endif %}
+
+{% if k.frozen or k.unpublished %}
+<p class="warn">Bu kurucunun {% if k.frozen %}{{ k.frozen|count }} fonunda dolaşımdaki pay ve kişi sayısı günlerdir değişmiyor{% endif %}{% if k.frozen and k.unpublished %}, {% endif %}{% if k.unpublished %}{{ k.unpublished|count }} fonu aralığın bazı günlerinde değerleme yayımlamadı{% endif %}. Bunlar yayımlanan verilerden yapılan çıkarımlardır; fonların resmî durumu için KAP’a bakınız.</p>
+{% endif %}
+
+<table>
+  <thead><tr><th>Kod</th><th>Fon</th><th class="n">Büyüklük</th><th class="n">Getiri</th><th class="n">Piyasa etkisi</th><th class="n">Yatırımcı akışı</th><th>Durum</th></tr></thead>
+  <tbody>
+  {% for f in k.funds %}
+    <tr><td><a href="{{ root }}fon/{{ f.fonKodu }}.html">{{ f.fonKodu }}</a></td><td>{{ f.fonUnvan }}</td>{% if f.analysed %}<td class="n">{{ f.end_aum|money }}</td><td class="n">{{ f.cumulative_return|pct }}</td><td class="n">{{ f.market_effect_pct|pct }}</td><td class="n">{{ f.flow_pct|pct }}</td>{% else %}<td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td>{% endif %}<td>{{ status(f) }}{% if not f.analysed and not f.unpublished %}analiz dışı{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="note">Toplamlar dönem analizine giren fonları kapsar: aralığın tamamında verisi olan ve başlangıçta en az {{ min_aum }} büyüklüğündeki fonlar. Oranlar aralık başındaki büyüklüğe göredir.</p>
+{% endblock %}

@@ -452,7 +452,51 @@ def founder_contexts(universes):
     return sorted(founders.values(), key=lambda e: e["end_aum"], reverse=True)
 
 
-def build(out: Path, base_url: str, end=None, cache_dir: Path | None = None) -> None:
+def analysis_charts(data: dict) -> dict:
+    """The charts of a one-off analysis page, from the series kept in its JSON."""
+    event = data["event"]["date"]
+
+    def index_chart(series, label):
+        return line_chart(
+            series["dates"],
+            {
+                f"Fiyatı en az %{round(abs(PRICE_DROP) * 100)} düşen": series["price_drop"],
+                f"En az %{round(abs(HEAVY_OUTFLOW) * 100)} çıkış yaşayan": series["outflow"],
+            },
+            event=event,
+            y_title="Fonların oranı (%)",
+            label=label,
+        )
+
+    return {
+        "yat": index_chart(data["yat_index"], "Yatırım fonlarında kötü gün yaşayan fonların günlük oranı"),
+        "bes": index_chart(data["bes_index"], "Emeklilik fonlarında kötü gün yaşayan fonların günlük oranı"),
+        "seven": bar_chart(
+            data["seven_daily"]["dates"],
+            data["seven_daily"]["flow_bn"],
+            event=event,
+            y_title="Net akış (milyar TL)",
+            label="Yedi kurucunun fonlarında günlük tahmini net akış",
+            unit="milyar TL",
+        ),
+        "rest": bar_chart(
+            data["rest_daily"]["dates"],
+            data["rest_daily"]["flow_bn"],
+            event=event,
+            y_title="Net akış (milyar TL)",
+            label="Diğer kurucuların yatırım fonlarında günlük tahmini net akış",
+            unit="milyar TL",
+        ),
+    }
+
+
+def build(
+    out: Path,
+    base_url: str,
+    end=None,
+    cache_dir: Path | None = None,
+    drafts: bool = False,
+) -> None:
     end = (
         pd.Timestamp(end).normalize()
         if end
@@ -502,21 +546,40 @@ def build(out: Path, base_url: str, end=None, cache_dir: Path | None = None) -> 
 
     pages = [""]
 
-    def write(path, template, **context):
+    def write(path, template, listed=True, **context):
         target = out / path
         target.parent.mkdir(parents=True, exist_ok=True)
         # Links are relative, so the same files work from disk and on Pages
         root = "../" * path.count("/")
         html = env.get_template(template).render(**common, **context, root=root, path=path)
         target.write_text(html, encoding="utf-8")
-        if path != "index.html":
+        if listed and path != "index.html":
             pages.append(path)
 
     universes = [universe_context(a) for a in analyses]
     founders = founder_contexts(universes)
     any_stopped = any(u["frozen"] or u["unpublished"] for u in universes)
 
-    write("index.html", "index.html", universes=universes, any_stopped=any_stopped)
+    # One-off analysis pages are kept as computed JSON and only rendered here.
+    # One that is not marked published is built on request alone, to be read
+    # before it goes out, and never reaches the sitemap or the home page.
+    published = []
+    for file in sorted((HERE / "analysis").glob("*.json")):
+        data = json.loads(file.read_text(encoding="utf-8"))
+        if not (data["published"] or drafts):
+            continue
+        write(
+            f"analiz/{data['slug']}.html",
+            data["template"],
+            listed=data["published"],
+            a=data,
+            charts=analysis_charts(data),
+            any_stopped=any_stopped,
+        )
+        if data["published"]:
+            published.append(data)
+
+    write("index.html", "index.html", universes=universes, any_stopped=any_stopped, analyses=published)
     write("kurucular.html", "founders.html", founders=founders)
     if any_stopped:
         write("alim-satimi-duran-fonlar.html", "stopped.html", universes=universes)
@@ -569,8 +632,13 @@ def main() -> None:
         type=Path,
         help="Keep fetched frames here and reuse them, for working on the templates",
     )
+    parser.add_argument(
+        "--drafts",
+        action="store_true",
+        help="Also build analysis pages not yet marked published, to read them before they go out",
+    )
     args = parser.parse_args()
-    build(args.out, args.base_url, args.end, args.cache_dir)
+    build(args.out, args.base_url, args.end, args.cache_dir, args.drafts)
 
 
 if __name__ == "__main__":

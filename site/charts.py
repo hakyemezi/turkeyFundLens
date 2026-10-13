@@ -44,6 +44,10 @@ def nice_ticks(low: float, high: float, target: int = 4) -> list[float]:
     return ticks
 
 
+def _with_unit(value: float, unit: str) -> str:
+    return f"%{_tr(value, 2)}" if unit == "%" else f"{_tr(value, 2)} {unit}"
+
+
 class _Frame:
     """The shared geometry: a band per day across, a linear scale up."""
 
@@ -103,8 +107,13 @@ def _svg(parts: list[str], label: str) -> str:
     )
 
 
-def bar_chart(dates, values, event=None, y_title: str = "", label: str = "") -> str:
-    """One bar per day, up for positive and down for negative, in percent."""
+def bar_chart(dates, values, event=None, y_title: str = "", label: str = "", unit: str = "%") -> str:
+    """
+    One bar per day, up for positive and down for negative.
+
+    ``unit`` is written with each value in its tooltip: "%" before the number,
+    the Turkish way, anything else after it.
+    """
     values = [float(v) for v in values]
     if not values:
         return ""
@@ -118,7 +127,7 @@ def bar_chart(dates, values, event=None, y_title: str = "", label: str = "") -> 
         parts.append(
             f'<rect class="{"pos" if value >= 0 else "neg"}" x="{frame.x(i) - width / 2:.1f}" '
             f'y="{top:.1f}" width="{width:.1f}" height="{max(height, 0.6):.1f}">'
-            f"<title>{date:%d.%m.%Y}: %{_tr(value, 2)}</title></rect>"
+            f"<title>{date:%d.%m.%Y}: {_with_unit(value, unit)}</title></rect>"
         )
     parts += frame.event(event)
     return _svg(parts, label)

@@ -235,7 +235,7 @@ states the date the data runs through. If any fund has a day without a
 valuation inside the window, the page names them and asks whether to exclude
 them or include them as zero before running the analysis.
 
-The interface itself is bilingual too: a selector in the sidebar switches the whole page, and the archetype, quadrant and flow regime labels in the table and chart are translated along with it, not just the report.
+The interface itself is bilingual too: a selector in the sidebar switches the whole page, and the archetype, quadrant and flow regime labels in the table and chart are translated along with it, not just the report. It opens in Turkish, on investment funds (YAT); English and pension funds (BES) are one click away in the sidebar.
 
 It shows the universe as one scatter of market effect against estimated
 investor flow — the funds that grew on inflows while the market fell sit in

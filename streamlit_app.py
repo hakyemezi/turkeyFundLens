@@ -113,6 +113,11 @@ remember_modules()
 
 st.set_page_config(page_title="turkeyFundLens", page_icon="🔍", layout="wide")
 
+# What a first visit opens on: the page is read mostly from Turkey, and mostly
+# for the investment funds. Both stay a click away in the sidebar.
+DEFAULT_LANGUAGE = "tr"
+DEFAULT_FUND_TYPE = FUND_TYPE_SECURITIES
+
 # TEFAS caps a request at about a month and answers with an empty result rather
 # than an error when asked for more, or when asked too quickly, so the client
 # fetches month by month and paces itself. A year is a dozen of those rounds,
@@ -181,9 +186,14 @@ PERCENT_COLUMNS = [
 st.sidebar.title("🔍 turkeyFundLens")
 st.sidebar.caption(tfl.BUILD_VERSION)
 
+# Set before the selectors are drawn, so they open on these rather than on
+# whichever option happens to be listed first.
+st.session_state.setdefault("language", DEFAULT_LANGUAGE)
+st.session_state.setdefault("fund_type", DEFAULT_FUND_TYPE)
+
 # Streamlit has written the new choice into session state before this reruns,
 # so the selector's own label can be shown in the language being switched to.
-current = st.session_state.get("language", "en")
+current = st.session_state["language"]
 
 language = st.sidebar.radio(
     "🌐 " + UI[current]["language"],
@@ -200,8 +210,7 @@ def t(key, **kwargs):
 
     The universe is read from session state rather than passed in, the same way
     the language selector reads its own: the fund type selector is drawn after
-    this is defined, and on the first run, before it is drawn, the default
-    pension wording is the right one.
+    this is defined, and its default is already in session state by then.
     """
     overrides = UI_BY_FUND_TYPE.get(st.session_state.get("fund_type"), {}).get(language, {})
     text = overrides.get(key) or UI[language].get(key) or UI["en"][key]

@@ -281,6 +281,11 @@ the app. It has:
   the funds that look closed to dealing;
 - charts drawn as inline SVG when the site is built, so no page loads a script
   to show one;
+- one-off analysis pages, kept as computed JSON in `site/analysis/` and only
+  rendered by the build, so they do not change with the daily data. The first,
+  written by `site/make_crisis_analysis.py`, sets the public fund data around
+  17 September 2026 beside the regulator's published decision. A page is left
+  out of the site until its JSON is marked as published;
 - a sitemap, breadcrumbs as structured data, and ownership files for search
   engines in `site/verification/`. After each build `site/indexnow.py` tells
   Bing, Yandex and the other IndexNow engines what changed.

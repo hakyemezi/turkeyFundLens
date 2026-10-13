@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "_macros.html" import crumbs %}
+{% set o = a.official %}
+{% set c = a.counts %}
+{% block title %}Eylül 2026’da TEFAS verisi ne gösterdi? SPK’nın 17 Eylül kararı ve fon verileri | turkeyFundLens{% endblock %}
+{% block description %}17 Eylül 2026’da SPK yedi portföy yönetim şirketinin TEFAS fonlarını işleme kapattı. Herkese açık günlük fon verilerinde o günlerde ne göründüğü: fiyat düşüşü, para çıkışı ve alım-satımı duran fonlar.{% endblock %}
+{% block content %}
+{{ crumbs([("Ana sayfa", "index.html"), ("Eylül 2026’da TEFAS verisi ne gösterdi?", none)], root, base_url) }}
+{% if not a.published %}<p class="warn"><strong>Taslak.</strong> Bu sayfa yayımlanmadı; site haritasında ve ana sayfada yer almıyor.</p>{% endif %}
+<h1>Eylül 2026’da TEFAS verisi ne gösterdi?</h1>
+<p class="lead">17 Eylül 2026’da Sermaye Piyasası Kurulu, yedi portföy yönetim şirketinin TEFAS’ta işlem gören tüm fonlarını alım ve satıma kapattı. Bu sayfa kararı yorumlamaz ve nedenleri hakkında bir şey söylemez. TEFAS’ın herkese açık günlük verilerinde o günlerde ne göründüğünü, ve yalnızca bu veriden nelerin çıkarılabildiğini gösterir.</p>
+<p class="meta">Veri aralığı {{ a.window.start|day }} – {{ a.window.end|day }} · {{ c.funds|count }} yatırım fonu · {{ a.computed|day }} tarihinde hesaplandı; günlük sayfalar gibi yenilenmez.</p>
+
+<section>
+  <h2>Resmî kayıt</h2>
+  <ul class="links">
+    <li><a href="{{ o.bulletin_url }}">{{ o.bulletin }}</a> ({{ o.bulletin_date|day }}), {{ o.decisions }} sayılı kararlar: Tera, Pusula, Hedef, Atlas, A1, Pardus ve Bulls Portföy’ün kurucusu olduğu ve TEFAS’ta işlem gören tüm yatırım fonları alım ve satım yönünde işleme kapatıldı; bültende unvanı sayılan {{ o.listed_funds }} fonun tasfiyesine karar verildi.</li>
+    <li><a href="{{ o.statement_url }}">SPK’nın {{ o.statement_date|day }} tarihli açıklaması</a>: tasfiyesine karar verilen fon sayısı {{ o.statement_funds }}; Merkezi Kayıt Kuruluşu kayıtlarına göre bu fonlardaki tekil yatırımcı sayısı {{ o.statement_investors|count }}.</li>
+  </ul>
+  <p class="note">Tasfiye süresi, ödemeler ve sonraki kararlar için <a href="https://spk.gov.tr/duyurular/basin-duyurulari/2026">SPK basın duyurularına</a> ve fonların KAP açıklamalarına bakınız. Aşağıdaki her şey resmî kayıt değil, yayımlanan fiyat ve pay verilerinden hesaplanmış rakamlardır.</p>
+</section>
+
+<section>
+  <h2>Olay günü veride nasıl görünüyor?</h2>
+  <div class="chart">{{ charts.yat|safe }}</div>
+  <p>{{ a.event.date|day }} günü, yatırım fonlarının {{ a.peak.price_drop_share|pct }} kadarının fiyatı tek günde en az %{{ drop_pct }} düştü. Yatırımcıların tek günde fonun en az %{{ outflow_pct }}’ini çektiği fonların oranı ise {{ a.peak.outflow_share_max_date|day }} günü {{ a.peak.outflow_share_max|pct }} ile en yüksek değerine çıktı. Kesikli çizgi, aracın bu iki oranın önceki haftalardan kopuşuna bakarak, tarih verilmeden kendisinin bulduğu olay günüdür.</p>
+  <h3>Emeklilik fonlarında aynı günler</h3>
+  <div class="chart">{{ charts.bes|safe }}</div>
+  <p>Emeklilik fonlarında da aynı gün yaygın bir fiyat düşüşü var (en yüksek {{ a.peak.bes_price_drop_share|pct }}), ama ardından bir çıkış dalgası gelmiyor (en yüksek {{ a.peak.bes_outflow_share_max|pct }}). Bu dönemde alım-satımı durmuş görünen ya da değerleme yayımlamayan emeklilik fonu yok.</p>
+</section>
+
+<section>
+  <h2>Yedi kurucunun fonlarında para akışı</h2>
+  <div class="chart">{{ charts.seven|safe }}</div>
+  <p class="note">Yedi kurucunun TEFAS’taki fonlarının toplam günlük tahmini net akışı, milyar TL. Alım-satıma kapanan bir fonda akış kaydedilemez; olay gününden sonraki sıfıra yakın çubuklar hareket olmadığını değil, hareket edilemediğini gösterir.</p>
+  <table>
+    <thead><tr><th>Kurucu</th><th class="n">TEFAS’taki fon</th><th class="n">Tasfiye listesinde</th><th class="n">Veride işaretlenen</th><th class="n">{{ a.window.start|day }} büyüklüğü</th><th class="n">Olay öncesi akış</th><th class="n">Olay günü ve sonrası</th></tr></thead>
+    <tbody>
+    {% for f in a.founders %}
+      <tr><td><a href="{{ root }}kurucu/{{ f.slug }}.html">{{ f.name }}</a></td><td class="n">{{ f.funds|count }}</td><td class="n">{{ f.listed|count }}</td><td class="n">{{ f.flagged|count }}</td><td class="n">{{ f.start_aum|money }}</td><td class="n">{{ f.flow_before|money }}<br><small>{{ f.flow_before_pct|pct }}</small></td><td class="n">{{ f.flow_after|money }}<br><small>{{ f.flow_after_pct|pct }}</small></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="note">“Tasfiye listesinde”: bültende unvanı sayılan fonlardan TEFAS verisinde unvanıyla eşleşenler ({{ c.listed_matched }}/{{ c.listed_titles }}). “Veride işaretlenen”: aşağıda anlatılan yöntemle, yalnızca veriden alım-satımı durmuş ya da değerlemesi yayımlanmamış görünen fonlar. Olay öncesi akış {{ a.window.start|day }} büyüklüğüne, sonrası olaydan önceki günün büyüklüğüne oranlıdır.</p>
+</section>
+
+<section>
+  <h2>Veri tek başına ne kadarını yakalıyor?</h2>
+  <p>Araç bir fonu, öncesinde günlerin çoğunda işlem görmüşken dolaşımdaki pay ve kişi sayısı en az {{ freeze_days }} yayın günü hiç değişmediğinde, ya da TEFAS’ta değerlemesi yayımlanmadığında işaretler. Kurul kararından ve şirket adlarından haberi yoktur.</p>
+  <ul class="links">
+    <li>Bu dönemde işaretlenen {{ c.flagged|count }} fondan <strong>{{ c.named_flagged|count }} tanesi</strong> kararda adı geçen yedi kurucuya ait.</li>
+    <li>Diğer kurucuların {{ c.rest_funds|count }} fonundan yalnızca {{ c.rest_flagged|count }} tanesi işaretlendi.</li>
+    <li>Yedi kurucunun TEFAS verisindeki {{ c.named_funds|count }} fonundan <strong>{{ c.named_missed|count }} tanesi işaretlenmedi</strong>. Bültendeki tasfiye listesinden veride bulunan {{ c.listed_matched }} fondan {{ c.listed_flagged }} tanesi işaretli.</li>
+  </ul>
+  <p>İşaretlenmeyenler, kapanmadan önce de seyrek işlem gören fonlar: olaydan önce günlerin ortanca {{ a.why_missed.missed_activity_median|pct }} kadarında pay ya da kişi sayısı değişmiş, ortanca yatırımcı sayıları {{ a.why_missed.missed_holders_median|count }}. İşaretlenenlerde bu oran {{ a.why_missed.caught_activity_median|pct }}, ortanca yatırımcı sayısı {{ a.why_missed.caught_holders_median|count }}. Yani yöntem her gün işlem gören fonların kapanışını görüyor; zaten durgun olan bir fonun kapanışını olağan durgunluğundan ayıramıyor. Kurucu düzeyinde tablo açık, fon düzeyinde eksik.</p>
+</section>
+
+<section>
+  <h2>Para başka yatırım fonlarına mı gitti?</h2>
+  <p>Toplamda hayır. Olay günü ve sonrasında yedi kurucunun dışındaki yatırım fonlarında da tahmini net akış negatif: {{ a.totals.rest_flow_after|money }}. Bunun {{ a.totals.rest_money_market_after|money }} kadarı unvanında “para piyasası” geçen fonlardan. Yedi kurucunun fonlarında kapanışa kadarki net akış ise {{ a.totals.seven_flow_after|money }}.</p>
+  <div class="chart">{{ charts.rest|safe }}</div>
+  <p class="note">Yedi kurucunun dışındaki yatırım fonlarının toplam günlük tahmini net akışı, milyar TL. Bu rakamların ne kadarının olayla ilgili olduğunu veri söylemez: aynı aralık bir çeyrek sonunu da içeriyor, ve fonlardan çıkan paranın nereye gittiği TEFAS verisinde görünmez.</p>
+  {% if a.receivers %}
+  <h3>Aynı günlerde net giriş alan kurucular</h3>
+  <p class="note">Net giriş alanlar da var, ama tutarları toplam çıkışın yanında küçük.</p>
+  <table>
+    <thead><tr><th>Kurucu</th><th class="n">Olay günü ve sonrası net akış</th></tr></thead>
+    <tbody>
+    {% for r in a.receivers %}{% if r.flow_after > 0 %}
+      <tr><td><a href="{{ root }}kurucu/{{ r.slug }}.html">{{ r.name }}</a></td><td class="n">{{ r.flow_after|money }}</td></tr>
+    {% endif %}{% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Yöntem ve sınırlar</h2>
+  <ul class="links">
+    <li>Yatırımcı akışı, dolaşımdaki pay sayısındaki günlük değişimin o günkü fiyatla çarpımıdır; tahmindir.</li>
+    <li>Olay günü, fiyatı sert düşen ve sert çıkış yaşayan fonların oranları önceki 20 işlem günüyle karşılaştırılarak bulunur. Geriye dönük bir tespittir; önceden haber vermez.</li>
+    <li>“İşaretlenen” ve “alım-satımı durmuş görünen” ifadeleri yayımlanan veriden yapılan çıkarımlardır. Bir fonun resmî durumu için SPK kararları ve KAP açıklamaları esastır.</li>
+    <li>Fon unvanı ile kurucu eşleştirmesi unvanın başından yapılır; bültendeki {{ c.listed_titles }} unvandan {{ c.listed_titles - c.listed_matched }} tanesi TEFAS verisinde aynı yazımla bulunamadı.</li>
+    <li>Hesaplamanın tamamı <a href="{{ repo_url }}">açık kaynak</a>{% if any_stopped %}; güncel durum için <a href="{{ root }}alim-satimi-duran-fonlar.html">alım-satımı durmuş görünen fonlar</a> sayfasına bakınız{% endif %}.</li>
+  </ul>
+</section>
+{% endblock %}

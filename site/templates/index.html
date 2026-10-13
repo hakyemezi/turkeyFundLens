@@ -45,6 +45,9 @@
 <section>
   <h2>Başka nereden bakılır?</h2>
   <ul class="links">
+    {% for a in analyses %}
+    <li><a href="{{ root }}analiz/{{ a.slug }}.html">{{ a.title }}</a> — {{ a.official.bulletin_date|day }} tarihli SPK kararı çevresinde fon verileri.</li>
+    {% endfor %}
     <li><a href="{{ root }}kurucular.html">Kuruculara göre</a> — her portföy yönetim ve emeklilik şirketinin fonları, toplam büyüklüğü ve net akışı.</li>
     {% for u in universes %}
     <li><a href="{{ root }}{{ u.info.slug }}-para-akisi.html">En çok para girişi ve çıkışı olan {{ u.info.plain }}</a> — son bir ayda ilk {{ flow_list_length }}.</li>

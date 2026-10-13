@@ -20,12 +20,12 @@ from __future__ import annotations
 import argparse
 import json
 import pickle
+import re
 import shutil
+import sys
+import time
 from pathlib import Path
 
-import time
-
-import altair as alt
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -49,6 +49,9 @@ from turkeyfundlens.core.stress import (
 from turkeyfundlens.data.tefas_client import FetchConfig, fetch_tefas_period, month_chunks
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+
+from charts import bar_chart, line_chart  # noqa: E402  (a sibling file, not a package)
 
 DEFAULT_BASE_URL = "https://hakyemezi.github.io/turkeyFundLens/"
 APP_URL = "https://turkeyfundlens.streamlit.app"
@@ -63,10 +66,14 @@ BASELINE_DAYS = 31
 CHUNK_ROUNDS = 4
 CHUNK_PAUSE_SECONDS = 60
 
+# How many funds the lists of largest inflows and outflows run to
+FLOW_LIST_LENGTH = 50
+
 UNIVERSES = {
     FUND_TYPE_PENSION: {
         "slug": "bes",
         "name": "Emeklilik fonları (BES)",
+        "plain": "emeklilik fonları",
         "short": "BES",
         "holders": "Katılımcı",
         "investors": False,
@@ -74,6 +81,7 @@ UNIVERSES = {
     FUND_TYPE_SECURITIES: {
         "slug": "yat",
         "name": "Menkul kıymet yatırım fonları",
+        "plain": "yatırım fonları",
         "short": "YAT",
         "holders": "Yatırımcı",
         "investors": True,
@@ -91,6 +99,13 @@ EVENT_LABELS = {
     EVENT_RUN: "yaygın fiyat düşüşü ve ardından gelen çıkış dalgası",
     EVENT_SHOCK: "yaygın fiyat düşüşü; ardından çıkış dalgası gelmedi",
 }
+
+TR_ASCII = str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosuCGIOSU")
+
+
+def slugify(text: str) -> str:
+    """A founder's name as a URL: ASCII, lower case, hyphens."""
+    return re.sub(r"[^a-z0-9]+", "-", str(text).translate(TR_ASCII).lower()).strip("-")
 
 
 # ------------------------------------------------------------------ formatting
@@ -136,73 +151,28 @@ def day(value) -> str:
 # ------------------------------------------------------------------ charts
 
 
-def chart_json(chart: alt.Chart) -> str:
-    # Inlined in a <script> element, so a "</" inside a name must not close it
-    return json.dumps(chart.to_dict(), ensure_ascii=False).replace("</", "<\\/")
-
-
-def event_rule(event):
-    return (
-        alt.Chart(pd.DataFrame({"tarih": [event]}))
-        .mark_rule(strokeDash=[4, 4], color="#d1495b")
-        .encode(x="tarih:T")
-    )
-
-
 def stress_chart(index: pd.DataFrame, event) -> str:
-    names = {
-        "price_drop_share": f"Fiyatı en az %{round(abs(PRICE_DROP) * 100)} düşen",
-        "outflow_share": f"En az %{round(abs(HEAVY_OUTFLOW) * 100)} çıkış yaşayan",
-    }
-    data = (
-        index.reset_index()
-        .melt(id_vars="tarih", value_vars=list(names), var_name="seri", value_name="oran")
-        .assign(oran=lambda d: d["oran"] * 100, seri=lambda d: d["seri"].map(names))
+    return line_chart(
+        index.index,
+        {
+            f"Fiyatı en az %{round(abs(PRICE_DROP) * 100)} düşen": index["price_drop_share"] * 100,
+            f"En az %{round(abs(HEAVY_OUTFLOW) * 100)} çıkış yaşayan": index["outflow_share"] * 100,
+        },
+        event=event,
+        y_title="Fonların oranı (%)",
+        label="Kötü gün yaşayan fonların günlük oranı",
     )
-    data["tarih"] = data["tarih"].dt.strftime("%Y-%m-%d")
-    lines = (
-        alt.Chart(data)
-        .mark_line(point=True)
-        .encode(
-            x=alt.X("tarih:T", title=None, axis=alt.Axis(format="%d.%m")),
-            y=alt.Y("oran:Q", title="Fonların oranı (%)"),
-            color=alt.Color("seri:N", title=None, legend=alt.Legend(orient="top")),
-            tooltip=[
-                alt.Tooltip("tarih:T", title="Tarih", format="%d.%m.%Y"),
-                alt.Tooltip("seri:N", title=" "),
-                alt.Tooltip("oran:Q", title="%", format=".1f"),
-            ],
-        )
-    )
-    chart = lines + event_rule(pd.Timestamp(event).strftime("%Y-%m-%d")) if event is not None else lines
-    return chart_json(chart.properties(width="container", height=260))
 
 
 def daily_flow_chart(daily: pd.DataFrame, event) -> str:
-    data = daily.dropna(subset=["flow_pct"]).assign(
-        akis=lambda d: d["flow_pct"] * 100,
-        yon=lambda d: d["flow_pct"].map(lambda v: "giriş" if v >= 0 else "çıkış"),
-        tarih=lambda d: d["tarih"].dt.strftime("%Y-%m-%d"),
-    )[["tarih", "akis", "yon"]]
-    bars = (
-        alt.Chart(data)
-        .mark_bar()
-        .encode(
-            x=alt.X("tarih:T", title=None, axis=alt.Axis(format="%d.%m")),
-            y=alt.Y("akis:Q", title="Günlük tahmini akış (%)"),
-            color=alt.Color(
-                "yon:N",
-                scale=alt.Scale(domain=["giriş", "çıkış"], range=["#2e9e83", "#d1495b"]),
-                legend=None,
-            ),
-            tooltip=[
-                alt.Tooltip("tarih:T", title="Tarih", format="%d.%m.%Y"),
-                alt.Tooltip("akis:Q", title="%", format=".2f"),
-            ],
-        )
+    daily = daily.dropna(subset=["flow_pct"])
+    return bar_chart(
+        daily["tarih"],
+        daily["flow_pct"] * 100,
+        event=event,
+        y_title="Günlük tahmini akış (%)",
+        label="Gün gün tahmini yatırımcı akışı",
     )
-    chart = bars + event_rule(pd.Timestamp(event).strftime("%Y-%m-%d")) if event is not None else bars
-    return chart_json(chart.properties(width="container", height=220))
 
 
 # ------------------------------------------------------------------ data
@@ -298,6 +268,14 @@ def analyse(fund_type: str, start, end, cache_dir):
     for flag in ("frozen", "frozen_ongoing", "turned", "unpublished"):
         universe[flag] = universe[flag].eq(True)
 
+    # Where each fund stands among funds of its own type, and in the universe.
+    # A return of 3% means little alone; "fourth of 120 money market funds" does.
+    peers = universe.groupby("archetype")
+    universe["peer_count"] = peers["fonKodu"].transform("size")
+    universe["return_rank"] = peers["cumulative_return"].rank(ascending=False, method="min")
+    universe["flow_rank"] = peers["flow_pct"].rank(ascending=False, method="min")
+    universe["aum_rank"] = universe["end_aum"].rank(ascending=False, method="min")
+
     return {
         "fund_type": fund_type,
         "info": info,
@@ -313,20 +291,82 @@ def analyse(fund_type: str, start, end, cache_dir):
 # ------------------------------------------------------------------ pages
 
 
-def fund_rows(analysis, codes=None, sort="end_aum", ascending=False, limit=None):
-    frame = analysis["universe"]
-    if codes is not None:
-        frame = frame[frame["fonKodu"].isin(codes)]
-    frame = frame.sort_values(sort, ascending=ascending)
+def fund_rows(analysis, sort="end_aum", ascending=False, limit=None):
+    frame = analysis["universe"].sort_values(sort, ascending=ascending)
     if limit:
         frame = frame.head(limit)
     return frame.to_dict("records")
 
 
+def fund_summary(row: dict, info: dict, first_day, last_day, fund_count: int) -> list[str]:
+    """
+    The fund's month in sentences built from its own numbers.
+
+    Every fund page shares its layout with two thousand others; this is the
+    part that is about this fund and no other, for a reader and for a search
+    engine deciding whether the page says anything.
+    """
+    code = row["fonKodu"]
+    sentences = []
+
+    gain = row["cumulative_return"]
+    if pd.notna(gain):
+        verb = "değer kazandı" if gain >= 0 else "değer kaybetti"
+        sentences.append(f"{code}, {day(first_day)} – {day(last_day)} arasında {pct(abs(gain))} {verb}.")
+
+    sentences.append(
+        f"Fonun büyüklüğü {money(row['start_aum'])} iken {money(row['end_aum'])} oldu; "
+        f"değişim {pct(row['aum_change_pct'])}."
+    )
+    sentences.append(
+        f"Bunun içinde piyasa etkisi {pct(row['market_effect_pct'])}, tahmini yatırımcı akışı "
+        f"{pct(row['flow_pct'])} ({money(row['total_net_flow'])})."
+    )
+
+    change = row["participant_change"]
+    if pd.notna(change):
+        holders = info["holders"]
+        moved = "değişmedi" if change == 0 else f"{count(abs(change))} {'arttı' if change > 0 else 'azaldı'}"
+        sentences.append(f"{holders} sayısı {count(row['end_participants'])}; dönem içinde {moved}.")
+
+    if row["peer_count"] >= 3 and pd.notna(row["return_rank"]) and pd.notna(row["flow_rank"]):
+        sentences.append(
+            f"Aynı tipteki {count(row['peer_count'])} fon ({row['archetype']}) arasında getiride "
+            f"{count(row['return_rank'])}., yatırımcı akışında {count(row['flow_rank'])}. sırada."
+        )
+    sentences.append(
+        f"Analiz edilen {count(fund_count)} fon içinde büyüklükte {count(row['aum_rank'])}. sırada."
+    )
+    return sentences
+
+
+def similar_funds(universe: pd.DataFrame) -> dict:
+    """For every fund, the funds of its type nearest to it in size."""
+    nearest = {}
+    for _, group in universe.sort_values("end_aum", ascending=False).groupby("archetype", sort=False):
+        rows = group[["fonKodu", "fonUnvan"]].to_dict("records")
+        for i, row in enumerate(rows):
+            around = rows[max(0, i - 3):i] + rows[i + 1:i + 4]
+            nearest[row["fonKodu"]] = around[:6]
+    return nearest
+
+
+def breadcrumb_items(items, base_url: str) -> list:
+    """The trail of (name, path) pairs as schema.org ListItems; the last has no link."""
+    return [
+        {
+            "@type": "ListItem",
+            "position": position,
+            "name": name,
+            **({"item": base_url + ("" if href == "index.html" else href)} if href is not None else {}),
+        }
+        for position, (name, href) in enumerate(items, 1)
+    ]
+
+
 def universe_context(analysis):
     stress = analysis["stress"]
     funds = stress["funds"]
-    universe = analysis["universe"]
     event = stress["event_date"]
 
     frozen = funds[funds["frozen"]].sort_values("start_aum", ascending=False)
@@ -348,16 +388,17 @@ def universe_context(analysis):
         "inflows": fund_rows(analysis, sort="total_net_flow", ascending=False, limit=15),
         "outflows": fund_rows(analysis, sort="total_net_flow", ascending=True, limit=15),
         "all_funds": fund_rows(analysis),
-        "in_universe": set(universe["fonKodu"]),
     }
 
 
-def fund_contexts(analysis):
+def fund_contexts(ctx):
     """One context per fund that has any published day in the window."""
-    universe = analysis["universe"].set_index("fonKodu")
-    stressed = analysis["stress"]["funds"].set_index("fonKodu")
-    daily = analysis["stress"]["daily"]
-    event = analysis["stress"]["event_date"]
+    universe = ctx["universe"].set_index("fonKodu", drop=False)
+    stressed = ctx["stress"]["funds"].set_index("fonKodu")
+    daily = dict(tuple(ctx["stress"]["daily"].groupby("fonKodu")))
+    event = ctx["stress"]["event_date"]
+    nearest = similar_funds(ctx["universe"])
+    fund_count = len(universe)
 
     for code, base in stressed.iterrows():
         row = universe.loc[code].to_dict() if code in universe.index else None
@@ -365,11 +406,50 @@ def fund_contexts(analysis):
             "code": code,
             "name": base["fonUnvan"],
             "founder": base["founder"],
+            "founder_slug": slugify(base["founder"]),
             "row": row,
             "base": base.to_dict(),
-            "flow_chart": daily_flow_chart(daily[daily["fonKodu"] == code], event),
+            "summary": fund_summary(row, ctx["info"], ctx["first_day"], ctx["last_day"], fund_count) if row else [],
+            "similar": nearest.get(code, []),
+            "flow_chart": daily_flow_chart(daily[code], event) if code in daily else "",
             "event": event,
         }
+
+
+def founder_contexts(universes):
+    """Every founder with its funds, across both universes, largest first."""
+    founders = {}
+    for ctx in universes:
+        universe = ctx["universe"].set_index("fonKodu", drop=False)
+        for base in ctx["stress"]["funds"].to_dict("records"):
+            entry = founders.setdefault(
+                base["founder"],
+                {"name": base["founder"], "slug": slugify(base["founder"]), "funds": [], "universes": []},
+            )
+            row = universe.loc[base["fonKodu"]].to_dict() if base["fonKodu"] in universe.index else {}
+            entry["funds"].append({**base, **row, "analysed": bool(row)})
+            if ctx["info"]["name"] not in entry["universes"]:
+                entry["universes"].append(ctx["info"]["name"])
+
+    for entry in founders.values():
+        funds = entry["funds"]
+        analysed = [f for f in funds if f["analysed"]]
+        start_aum = sum(f["start_aum"] for f in analysed)
+        entry.update(
+            fund_count=len(funds),
+            analysed_count=len(analysed),
+            # Every fund's size at the start, analysed or not: a founder whose
+            # funds stopped being valued shows it in the gap between the two
+            start_aum_all=sum(f["start_aum"] for f in funds if pd.notna(f["start_aum"])),
+            end_aum=sum(f["end_aum"] for f in analysed),
+            net_flow=sum(f["total_net_flow"] for f in analysed),
+            market_effect=sum(f["total_market_effect"] for f in analysed),
+            flow_pct=sum(f["total_net_flow"] for f in analysed) / start_aum if start_aum else None,
+            frozen=sum(bool(f["frozen"]) for f in funds),
+            unpublished=sum(bool(f["unpublished"]) for f in funds),
+        )
+        funds.sort(key=lambda f: f.get("end_aum") or 0, reverse=True)
+    return sorted(founders.values(), key=lambda e: e["end_aum"], reverse=True)
 
 
 def build(out: Path, base_url: str, end=None, cache_dir: Path | None = None) -> None:
@@ -388,8 +468,9 @@ def build(out: Path, base_url: str, end=None, cache_dir: Path | None = None) -> 
         trim_blocks=True,
         lstrip_blocks=True,
     )
-    env.filters.update(money=money, pct=pct, count=count, day=day)
+    env.filters.update(money=money, pct=pct, count=count, day=day, slug=slugify)
     env.tests["present"] = lambda value: value is not None and not pd.isna(value)
+    env.globals["breadcrumb_items"] = breadcrumb_items
     common = {
         "base_url": base_url,
         "app_url": APP_URL,
@@ -402,13 +483,24 @@ def build(out: Path, base_url: str, end=None, cache_dir: Path | None = None) -> 
         "drop_pct": round(abs(PRICE_DROP) * 100),
         "outflow_pct": round(abs(HEAVY_OUTFLOW) * 100),
         "min_aum": money(UNIVERSE_MIN_START_AUM),
+        "flow_list_length": FLOW_LIST_LENGTH,
     }
 
     if out.exists():
         shutil.rmtree(out)
-    (out / "fon").mkdir(parents=True)
+    out.mkdir(parents=True)
     shutil.copytree(HERE / "static", out / "static")
     (out / ".nojekyll").write_text("")
+
+    # Ownership files the search engines ask for (Google, Bing, Yandex, IndexNow)
+    # are served from the top of the site as they are.
+    verification = HERE / "verification"
+    if verification.is_dir():
+        for file in verification.iterdir():
+            if file.is_file() and file.name != "README.md":
+                shutil.copy(file, out / file.name)
+
+    pages = [""]
 
     def write(path, template, **context):
         target = out / path
@@ -417,20 +509,36 @@ def build(out: Path, base_url: str, end=None, cache_dir: Path | None = None) -> 
         root = "../" * path.count("/")
         html = env.get_template(template).render(**common, **context, root=root, path=path)
         target.write_text(html, encoding="utf-8")
+        if path != "index.html":
+            pages.append(path)
 
-    pages = [""]
     universes = [universe_context(a) for a in analyses]
-    write("index.html", "index.html", universes=universes)
-    search_index = []
+    founders = founder_contexts(universes)
+    any_stopped = any(u["frozen"] or u["unpublished"] for u in universes)
 
+    write("index.html", "index.html", universes=universes, any_stopped=any_stopped)
+    write("kurucular.html", "founders.html", founders=founders)
+    if any_stopped:
+        write("alim-satimi-duran-fonlar.html", "stopped.html", universes=universes)
+
+    search_index = []
     for ctx in universes:
         slug = ctx["info"]["slug"]
-        write(f"{slug}.html", "universe.html", u=ctx)
-        pages.append(f"{slug}.html")
+        write(f"{slug}.html", "universe.html", u=ctx, any_stopped=any_stopped)
+        write(
+            f"{slug}-para-akisi.html",
+            "flows.html",
+            u=ctx,
+            inflows=fund_rows(ctx, sort="total_net_flow", ascending=False, limit=FLOW_LIST_LENGTH),
+            outflows=fund_rows(ctx, sort="total_net_flow", ascending=True, limit=FLOW_LIST_LENGTH),
+            any_stopped=any_stopped,
+        )
         for code, fund in fund_contexts(ctx):
             write(f"fon/{code}.html", "fund.html", u=ctx, f=fund)
-            pages.append(f"fon/{code}.html")
             search_index.append({"c": code, "n": fund["name"], "u": ctx["info"]["short"]})
+
+    for founder in founders:
+        write(f"kurucu/{founder['slug']}.html", "founder.html", k=founder)
 
     (out / "fonlar.json").write_text(
         json.dumps(sorted(search_index, key=lambda r: r["c"]), ensure_ascii=False), encoding="utf-8"
@@ -443,6 +551,9 @@ def build(out: Path, base_url: str, end=None, cache_dir: Path | None = None) -> 
         + "</urlset>\n",
         encoding="utf-8",
     )
+    # Crawlers only read robots.txt at the top of a host, which for a project
+    # site is not this folder; the copy here is for a custom domain, and the
+    # sitemap is handed to the search engines directly.
     (out / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {base_url}sitemap.xml\n")
     print(f"Wrote {len(pages)} pages to {out}")
 

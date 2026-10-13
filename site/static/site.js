@@ -1,11 +1,3 @@
-// Draw every chart whose Vega-Lite spec the page carries inline
-document.querySelectorAll(".chart > script[type='application/json']").forEach((script) => {
-  const spec = JSON.parse(script.textContent);
-  spec.background = null;
-  const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  vegaEmbed(script.parentElement, spec, { actions: false, renderer: "svg", theme: dark ? "dark" : undefined });
-});
-
 // Fund search on the home page: the index is a small JSON list of code, name, universe
 const input = document.getElementById("q");
 if (input) {

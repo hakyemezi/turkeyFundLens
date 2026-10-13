@@ -26,8 +26,8 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      # Held to the major versions the build was tested with locally
-      - run: pip install -e ".[site]" "pandas<3" "altair<6"
+      # Held to the major version the build was tested with locally
+      - run: pip install -e ".[site]" "pandas<3"
       - run: python site/build.py --out _site
         env:
           PYTHONUNBUFFERED: "1"   # fetch progress in the log as it happens
@@ -44,3 +44,12 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # Bing, Yandex and the other IndexNow engines are told what changed. Google
+  # reads the sitemap through Search Console instead.
+  announce:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python site/indexnow.py

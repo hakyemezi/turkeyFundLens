@@ -268,12 +268,25 @@ built with `scripts/fetch_history.py`. The sidebar switches between the two.
 
 ## Daily static site
 
-`site/build.py` writes a plain HTML site in Turkish — a page per universe and
-one per fund, with the market/flow split, the stress signals and the daily flow
-chart — and `.github/workflows/site.yml` rebuilds it every working evening and
-publishes it to GitHub Pages. Unlike the app it needs no server, never sleeps,
-and can be read by search engines. It always covers the last month; for other
-windows, use the app.
+`site/build.py` writes a plain HTML site in Turkish and
+`.github/workflows/site.yml` rebuilds it every working evening and publishes it
+to GitHub Pages. Unlike the app it needs no server, never sleeps, and can be
+read by search engines. It always covers the last month; for other windows, use
+the app. It has:
+
+- a page per fund: the market/flow split, a summary in sentences built from the
+  fund's own numbers, its rank among funds of its type, its flow day by day,
+  and the funds nearest to it;
+- a page per universe and per founder, the largest inflows and outflows, and
+  the funds that look closed to dealing;
+- charts drawn as inline SVG when the site is built, so no page loads a script
+  to show one;
+- a sitemap, breadcrumbs as structured data, and ownership files for search
+  engines in `site/verification/`. After each build `site/indexnow.py` tells
+  Bing, Yandex and the other IndexNow engines what changed.
+
+If TEFAS cannot be reached for a whole month of the data, the build stops
+rather than publish from a gap, and the previous site stays up.
 
 ```bash
 pip install -e ".[site]"

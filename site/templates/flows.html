@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros.html" import crumbs %}
+{% block title %}En çok para girişi ve çıkışı olan {{ u.info.plain }} — son bir ay | turkeyFundLens{% endblock %}
+{% block description %}{{ u.first_day|day }} – {{ u.last_day|day }} arasında en çok para girişi ve en çok para çıkışı olan {{ flow_list_length }} {{ u.info.plain|replace("fonları", "fonu") }}: tahmini net yatırımcı akışı, getiri ve büyüklük.{% endblock %}
+{% macro flow_table(rows) %}
+<table>
+  <thead><tr><th class="n">#</th><th>Kod</th><th>Fon</th><th class="n">Net akış</th><th class="n">Akış %</th><th class="n">Getiri</th><th class="n">Büyüklük</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr><td class="n">{{ loop.index }}</td><td><a href="{{ root }}fon/{{ r.fonKodu }}.html">{{ r.fonKodu }}</a></td><td>{{ r.fonUnvan }}</td><td class="n">{{ r.total_net_flow|money }}</td><td class="n">{{ r.flow_pct|pct }}</td><td class="n">{{ r.cumulative_return|pct }}</td><td class="n">{{ r.end_aum|money }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+{% block content %}
+{{ crumbs([("Ana sayfa", "index.html"), (u.info.name, u.info.slug ~ ".html"), ("Para girişi ve çıkışı", none)], root, base_url) }}
+<h1>En çok para girişi ve çıkışı olan {{ u.info.plain }}</h1>
+<p class="lead">{{ u.first_day|day }} – {{ u.last_day|day }} arasında yatırımcıların en çok para koyduğu ve en çok para çektiği {{ u.info.plain }}. Fonun büyümesi ya da küçülmesi değil, yalnızca yatırımcı hareketi: fiyat değişiminin etkisi ayrılmıştır.</p>
+<p class="meta">Veri {{ u.last_day|day }} tarihine kadar · {{ u.summary.fund_count|count }} fon içinden · toplam tahmini net akış {{ u.summary.total_net_flow|money }}</p>
+
+<section>
+  <h2>En çok para girişi olan {{ flow_list_length }} fon</h2>
+  {{ flow_table(inflows) }}
+</section>
+
+<section>
+  <h2>En çok para çıkışı olan {{ flow_list_length }} fon</h2>
+  {{ flow_table(outflows) }}
+</section>
+
+<p class="note">Net akış, dolaşımdaki pay sayısındaki günlük değişimin o günkü fiyatla çarpımının dönem toplamıdır; tahmindir. Akış oranı aralık başındaki büyüklüğe göredir. Alım-satımı durmuş bir fonda akış sıfır görünür{% if any_stopped %}; bunun için <a href="{{ root }}alim-satimi-duran-fonlar.html">duran fonlar</a> sayfasına bakın{% endif %}. Büyük bir giriş fonun iyi olduğu, büyük bir çıkış kötü olduğu anlamına gelmez.</p>
+{% endblock %}

@@ -267,12 +267,25 @@ Bir yıldan uzun analizler için projeyi kendi bilgisayarınızda çalıştırı
 
 ## Günlük statik site
 
-`site/build.py` Türkçe düz HTML bir site üretir: her evren ve her fon için,
-piyasa/akış ayrımı, stres sinyalleri ve günlük akış grafiğiyle birer sayfa.
-`.github/workflows/site.yml` her iş günü akşamı siteyi yeniden derleyip GitHub
-Pages'te yayımlar. Uygulamanın aksine sunucu gerektirmez, uykuya geçmez ve arama
-motorlarınca okunabilir. Her zaman son bir ayı kapsar; başka aralıklar için
-uygulamayı kullanın.
+`site/build.py` Türkçe düz HTML bir site üretir; `.github/workflows/site.yml`
+her iş günü akşamı siteyi yeniden derleyip GitHub Pages'te yayımlar. Uygulamanın
+aksine sunucu gerektirmez, uykuya geçmez ve arama motorlarınca okunabilir. Her
+zaman son bir ayı kapsar; başka aralıklar için uygulamayı kullanın. İçeriği:
+
+- her fon için bir sayfa: piyasa/akış ayrımı, fonun kendi rakamlarından kurulan
+  özet cümleleri, kendi tipindeki fonlar arasındaki sırası, gün gün akışı ve
+  en yakın benzer fonlar;
+- her evren ve her kurucu için bir sayfa, en çok para girişi ve çıkışı olan
+  fonlar, alım-satımı durmuş görünen fonlar;
+- derleme sırasında satır içi SVG olarak çizilen grafikler; hiçbir sayfa grafik
+  için betik yüklemez;
+- site haritası, yapısal veri olarak breadcrumb'lar ve `site/verification/`
+  içinde arama motorları için sahiplik dosyaları. Her derlemeden sonra
+  `site/indexnow.py` Bing, Yandex ve diğer IndexNow motorlarına değişenleri
+  bildirir.
+
+TEFAS'a verinin bütün bir ayı için ulaşılamazsa derleme eksik veriyle yayımlamak
+yerine durur ve önceki site yayında kalır.
 
 ```bash
 pip install -e ".[site]"

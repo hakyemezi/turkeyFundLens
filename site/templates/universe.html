@@ -1,8 +1,11 @@
 {% extends "base.html" %}
 {% block title %}{{ u.info.name }} — son bir ayda piyasa etkisi ve yatırımcı akışı | turkeyFundLens{% endblock %}
 {% block description %}{{ u.info.name }}: {{ u.first_day|day }} – {{ u.last_day|day }} arasında {{ u.summary.fund_count|count }} fonun büyüklük değişimi, piyasa etkisi, tahmini yatırımcı akışı ve stres sinyalleri.{% endblock %}
+{% from "_macros.html" import crumbs %}
 {% macro fund_link(code) %}<a href="{{ root }}fon/{{ code }}.html">{{ code }}</a>{% endmacro %}
+{% macro founder_link(name, slug) %}<a href="{{ root }}kurucu/{{ slug }}.html">{{ name }}</a>{% endmacro %}
 {% block content %}
+{{ crumbs([("Ana sayfa", "index.html"), (u.info.name, none)], root, base_url) }}
 <h1>{{ u.info.name }}</h1>
 <p class="meta">Veri {{ u.last_day|day }} tarihine kadar · {{ u.summary.fund_count|count }} fon · {{ u.first_day|day }} tarihinden itibaren {{ u.intervals }} işlem günü</p>
 
@@ -21,7 +24,7 @@
   {% else %}
   <p class="event">Bu aralıkta öne çıkan bir stres olayı tespit edilmedi.</p>
   {% endif %}
-  <div class="chart"><script type="application/json">{{ u.stress_chart|safe }}</script></div>
+  <div class="chart">{{ u.stress_chart|safe }}</div>
   <p class="note">Her gün, fiyatı o gün en az %{{ drop_pct }} düşen fonların ve yatırımcılarının en az %{{ outflow_pct }} çıkış yaptığı fonların oranı. Olay günü, iki oranın da önceki haftalardan belirgin biçimde koptuğu gündür ve her gün veriden yeniden hesaplanır; yalnızca fiyat oranının koptuğu günler “çıkış dalgası gelmedi” diye ayrılır. Geriye dönük bir tespittir, tahmin değildir.</p>
 </section>
 
@@ -32,11 +35,11 @@
     <thead><tr><th>Kurucu</th><th class="n">Fon</th><th class="n">Büyüklük</th><th class="n">Etkilenen büyüklük</th><th class="n">Duran</th><th class="n">Değerlemesiz</th><th class="n">Dönen</th><th class="n">Olay sonrası akış</th></tr></thead>
     <tbody>
     {% for r in u.founders %}
-      <tr><td>{{ r.founder }}</td><td class="n">{{ r.funds|count }}</td><td class="n">{{ r.start_aum|money }}</td><td class="n">{{ r.stressed_aum|money }}</td><td class="n">{{ r.frozen|count }}</td><td class="n">{{ r.unpublished|count }}</td><td class="n">{{ r.turned|count }}</td><td class="n">{{ r.flow_after|pct }}</td></tr>
+      <tr><td>{{ founder_link(r.founder, r.founder|slug) }}</td><td class="n">{{ r.funds|count }}</td><td class="n">{{ r.start_aum|money }}</td><td class="n">{{ r.stressed_aum|money }}</td><td class="n">{{ r.frozen|count }}</td><td class="n">{{ r.unpublished|count }}</td><td class="n">{{ r.turned|count }}</td><td class="n">{{ r.flow_after|pct }}</td></tr>
     {% endfor %}
     </tbody>
   </table>
-  <p class="note">Etkilenen büyüklük, kurucunun aralık başında alım-satımı durmuş görünen ya da değerleme yayımlamayan fonlarda tuttuğu tutardır. Yalnızca bu sinyallerden en az biri olan kurucular listelenir.</p>
+  <p class="note">Etkilenen büyüklük, kurucunun aralık başında alım-satımı durmuş görünen ya da değerleme yayımlamayan fonlarda tuttuğu tutardır. Yalnızca bu sinyallerden en az biri olan kurucular listelenir; hepsi için <a href="{{ root }}kurucular.html">kurucular</a> sayfasına bakın.</p>
 </section>
 {% endif %}
 
@@ -51,7 +54,7 @@
     {% endfor %}
     </tbody>
   </table>
-  <p class="note">Dolaşımdaki pay ve kişi sayısı en az {{ freeze_days }} yayın günü üst üste değişmemiş, fiyat ise değişmeye devam etmiş; fon da öncesinde günlerin çoğunda işlem görüyormuş. Alım-satıma kapanmış bir fon veride böyle görünür. Bu bir çıkarımdır; resmî durum için KAP’a bakınız.</p>
+  <p class="note">Dolaşımdaki pay ve kişi sayısı en az {{ freeze_days }} yayın günü üst üste değişmemiş, fiyat ise değişmeye devam etmiş; fon da öncesinde günlerin çoğunda işlem görüyormuş. Alım-satıma kapanmış bir fon veride böyle görünür. Bu bir çıkarımdır; resmî durum için KAP’a bakınız.{% if any_stopped %} Kurucularıyla birlikte tam liste: <a href="{{ root }}alim-satimi-duran-fonlar.html">alım-satımı durmuş görünen fonlar</a>.{% endif %}</p>
 </section>
 {% endif %}
 
@@ -80,20 +83,22 @@
 
 <section class="two">
   <div>
-    <h2>En çok giriş</h2>
+    <h2>En çok para girişi</h2>
     <table>
       <thead><tr><th>Kod</th><th class="n">Net akış</th><th class="n">Akış %</th></tr></thead>
       <tbody>{% for r in u.inflows %}<tr><td>{{ fund_link(r.fonKodu) }}</td><td class="n">{{ r.total_net_flow|money }}</td><td class="n">{{ r.flow_pct|pct }}</td></tr>{% endfor %}</tbody>
     </table>
   </div>
   <div>
-    <h2>En çok çıkış</h2>
+    <h2>En çok para çıkışı</h2>
     <table>
       <thead><tr><th>Kod</th><th class="n">Net akış</th><th class="n">Akış %</th></tr></thead>
       <tbody>{% for r in u.outflows %}<tr><td>{{ fund_link(r.fonKodu) }}</td><td class="n">{{ r.total_net_flow|money }}</td><td class="n">{{ r.flow_pct|pct }}</td></tr>{% endfor %}</tbody>
     </table>
   </div>
 </section>
+
+<p><a href="{{ root }}{{ u.info.slug }}-para-akisi.html">İlk {{ flow_list_length }} giriş ve çıkış →</a></p>
 
 <section>
   <h2>Tüm fonlar</h2>

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_macros.html" import crumbs %}
+{% block title %}Alım-satımı durmuş görünen fonlar — TEFAS verisinden | turkeyFundLens{% endblock %}
+{% block description %}{{ start|day }} – {{ end|day }} arasında dolaşımdaki pay ve kişi sayısı günlerdir değişmeyen ya da değerleme yayımlamayan TEFAS fonları, kurucularıyla birlikte. Veriden çıkarımdır.{% endblock %}
+{% block content %}
+{{ crumbs([("Ana sayfa", "index.html"), ("Alım-satımı durmuş görünen fonlar", none)], root, base_url) }}
+<h1>Alım-satımı durmuş görünen fonlar</h1>
+<p class="lead">Alım-satıma kapanan bir fonda çıkış olamaz; akışı sıfır görünür ve sakin bir fon gibi okunur. Bu sayfa o fonları TEFAS’ın yayımladığı günlük verilerden ayırır.</p>
+<p class="warn">Buradaki listeler yayımlanan verilerden yapılan çıkarımlardır, resmî bir bildirim değildir. Bir fonun işlem durumu ve nedeni için KAP açıklamalarına ve SPK kararlarına bakınız.</p>
+
+{% for u in universes %}
+{% if u.frozen or u.unpublished %}
+<section>
+  <h2>{{ u.info.name }}</h2>
+  {% if u.frozen %}
+  <h3>Pay ve kişi sayısı değişmeyenler ({{ u.frozen|length }})</h3>
+  <table>
+    <thead><tr><th>Kod</th><th>Fon</th><th>Kurucu</th><th>Başlangıç</th><th class="n">Gün</th><th>Sürüyor</th><th class="n">Büyüklük</th></tr></thead>
+    <tbody>
+    {% for r in u.frozen %}
+      <tr><td><a href="{{ root }}fon/{{ r.fonKodu }}.html">{{ r.fonKodu }}</a></td><td>{{ r.fonUnvan }}</td><td><a href="{{ root }}kurucu/{{ r.founder|slug }}.html">{{ r.founder }}</a></td><td>{{ r.frozen_since|day }}</td><td class="n">{{ r.frozen_days|count }}</td><td>{{ "evet" if r.frozen_ongoing else "hayır" }}</td><td class="n">{{ r.start_aum|money }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="note">Dolaşımdaki pay ve kişi sayısı en az {{ freeze_days }} yayın günü üst üste değişmemiş, fiyat ise değişmeye devam etmiş; fon da öncesinde günlerin çoğunda işlem görüyormuş. Büyüklük aralık başındaki değerdir.</p>
+  {% endif %}
+  {% if u.unpublished %}
+  <h3>Değerleme yayımlamayanlar ({{ u.unpublished|length }})</h3>
+  <table>
+    <thead><tr><th>Kod</th><th>Fon</th><th>Kurucu</th></tr></thead>
+    <tbody>
+    {% for r in u.unpublished %}
+      <tr><td><a href="{{ root }}fon/{{ r.fonKodu }}.html">{{ r.fonKodu }}</a></td><td>{{ r.fonUnvan }}</td><td><a href="{{ root }}kurucu/{{ r.founder|slug }}.html">{{ r.founder }}</a></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="note">Bu fonlar aralığın bazı günlerinde sıfır fiyat ya da dolaşımda payı olmayan yer tutucu kayıtla listelendi; TEFAS bunu işlemleri durdurulan, tasfiye edilen ya da vadesi dolan fonlar için gösterir.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endfor %}
+{% endblock %}

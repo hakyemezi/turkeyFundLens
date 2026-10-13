@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros.html" import crumbs %}
+{% block title %}Kuruculara göre fonlar: portföy yönetim ve emeklilik şirketleri | turkeyFundLens{% endblock %}
+{% block description %}Türkiye’deki portföy yönetim ve emeklilik şirketlerinin fonları: {{ start|day }} – {{ end|day }} arasında toplam büyüklük, piyasa etkisi ve tahmini net yatırımcı akışı.{% endblock %}
+{% block content %}
+{{ crumbs([("Ana sayfa", "index.html"), ("Kurucular", none)], root, base_url) }}
+<h1>Kuruculara göre fonlar</h1>
+<p class="lead">Her portföy yönetim ve emeklilik şirketinin TEFAS’taki fonları bir arada: toplam büyüklük, son bir aydaki piyasa etkisi ve tahmini net yatırımcı akışı.</p>
+
+<table>
+  <thead><tr><th>Kurucu</th><th class="n">Fon</th><th class="n">Son büyüklük</th><th class="n">Piyasa etkisi</th><th class="n">Net akış</th><th class="n">Akış %</th><th class="n">Duran</th><th class="n">Değerlemesiz</th></tr></thead>
+  <tbody>
+  {% for k in founders %}
+    <tr><td><a href="{{ root }}kurucu/{{ k.slug }}.html">{{ k.name }}</a></td><td class="n">{{ k.fund_count|count }}</td><td class="n">{{ k.end_aum|money }}</td><td class="n">{{ k.market_effect|money }}</td><td class="n">{{ k.net_flow|money }}</td><td class="n">{{ k.flow_pct|pct }}</td><td class="n">{{ k.frozen|count }}</td><td class="n">{{ k.unpublished|count }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="note">Kurucu adı fon unvanının başından okunur. Büyüklük ve akışlar dönem analizine giren fonların toplamıdır; “duran” ve “değerlemesiz” sütunları kurucunun bütün fonlarını sayar. Akış oranı aralık başındaki büyüklüğe göredir.</p>
+{% endblock %}

@@ -269,8 +269,10 @@ built with `scripts/fetch_history.py`. The sidebar switches between the two.
 ## Daily static site
 
 `site/build.py` writes a plain HTML site in Turkish and
-`.github/workflows/site.yml` rebuilds it every working evening and publishes it
-to GitHub Pages. Unlike the app it needs no server, never sleeps, and can be
+`.github/workflows/site.yml` rebuilds it every working day from the prices
+TEFAS publishes that evening, and publishes it to GitHub Pages. GitHub starts
+scheduled runs late, so far by two to three hours, so the day's data usually
+appears around midnight. Unlike the app it needs no server, never sleeps, and can be
 read by search engines. It always covers the last month; for other windows, use
 the app. It has:
 

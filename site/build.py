@@ -6,7 +6,8 @@ over a websocket is close to invisible to search engines, and the free host
 puts it to sleep when nobody visits. Daily data does not need a server. This
 fetches the last month from TEFAS once, runs the engine and the stress signals,
 and writes plain HTML — a page per universe and one per fund — which GitHub
-Pages serves as files. A scheduled workflow runs it every working evening.
+Pages serves as files. A scheduled workflow runs it every working day, after
+TEFAS publishes the evening's prices.
 
     python site/build.py --out _site
 
